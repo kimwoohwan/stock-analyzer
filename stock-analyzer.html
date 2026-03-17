@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>QUANTUMTRADE AI v5.0</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Noto+Sans+KR:wght@300;400;700&display=swap');
+:root{
+  --bg:#050a0f;--bg2:#080f18;--bg3:#0a1520;
+  --panel:#0d1c2e;--panel2:#0f2035;--border:#1a3a5c;
+  --accent:#00d4ff;--accent2:#0088aa;
+  --buy:#00ff88;--buy2:#00cc66;
+  --sell:#ff3355;--sell2:#cc2244;
+  --hold:#ffaa00;
+  --text:#c8e0f0;--text2:#7a9bb5;
+  --glow:0 0 20px rgba(0,212,255,0.3);
+  --glow-buy:0 0 20px rgba(0,255,136,0.4);
+  --glow-sell:0 0 20px rgba(255,51,85,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.03)1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.03)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:12px}
+
+.header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:linear-gradient(135deg,var(--panel),var(--panel2));border:1px solid var(--border);border-bottom:2px solid var(--accent);margin-bottom:12px;box-shadow:var(--glow)}
+.logo{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;color:var(--accent);letter-spacing:2px;text-shadow:0 0 15px rgba(0,212,255,.7)}
+.logo span{color:var(--buy)}
+.logo-sub{font-size:9px;color:var(--buy);font-family:'Share Tech Mono',monospace;margin-top:2px}
+.live-wrap{display:flex;align-items:center;gap:12px}
+.live-ind{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--buy);font-family:'Share Tech Mono',monospace}
+.live-dot{width:6px;height:6px;background:var(--buy);border-radius:50%;box-shadow:0 0 8px var(--buy);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.sys-time{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent)}
+
+.search-row{display:flex;gap:8px;margin-bottom:10px}
+.search-wrap{flex:1;position:relative}
+.search-wrap::before{content:'▶';position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:10px;pointer-events:none}
+input[type=text]{width:100%;padding:10px 12px 10px 30px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;outline:none;transition:all .3s}
+input[type=text]:focus{background:var(--panel2);box-shadow:var(--glow)}
+input::placeholder{color:var(--text2)}
+.btn{padding:10px 14px;font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:1px;border:none;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-load{background:linear-gradient(135deg,var(--accent2),var(--accent));color:var(--bg)}
+.btn-load:active{opacity:.8}
+.btn-ai{background:linear-gradient(135deg,#1a4060,#2a5a80);color:var(--accent);border:1px solid var(--accent)}
+
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.chip{padding:4px 10px;background:var(--panel);border:1px solid var(--border);color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;transition:all .2s}
+.chip:active,.chip.on{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.06)}
+
+.grid{display:grid;grid-template-columns:1fr 310px;gap:12px}
+.left,.right{display:flex;flex-direction:column;gap:12px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+
+.panel{background:linear-gradient(135deg,var(--panel),var(--bg3));border:1px solid var(--border);padding:14px;position:relative;overflow:hidden}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.ptitle{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--accent);margin-bottom:10px}
+.ptitle::before{content:'// ';opacity:.5}
+
+.price-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.sym{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--accent)}
+.cur-p{font-family:'Share Tech Mono',monospace;font-size:24px;font-weight:700;color:#fff}
+.chg{font-family:'Share Tech Mono',monospace;font-size:12px;padding:3px 8px}
+.chg.up{background:rgba(0,255,136,.15);color:var(--buy);border:1px solid var(--buy2)}
+.chg.dn{background:rgba(255,51,85,.15);color:var(--sell);border:1px solid var(--sell2)}
+.src-tag{font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;border:1px solid var(--border);color:var(--text2)}
+.src-tag.ok{border-color:var(--buy2);color:var(--buy)}
+.src-tag.err{border-color:var(--sell2);color:var(--sell)}
+.src-tag.loading{border-color:var(--hold);color:var(--hold)}
+
+.chart-wrap{position:relative;height:300px;margin-bottom:12px}
+.vol-wrap{position:relative;height:65px}
+.chart-loading{position:absolute;inset:0;background:rgba(5,10,15,.9);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:5;gap:10px}
+.chart-loading.on{display:flex}
+.loading-txt{font-family:'Orbitron',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;animation:flash .7s infinite}
+.loading-sub{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text2)}
+@keyframes flash{0%,100%{opacity:1}50%{opacity:.2}}
+
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px}
+@media(max-width:600px){.ind-grid{grid-template-columns:repeat(2,1fr)}}
+.ind-card{background:var(--bg2);border:1px solid var(--border);padding:9px 10px;position:relative}
+.ind-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.ind-card.bull::after{background:var(--buy)}.ind-card.bear::after{background:var(--sell)}.ind-card.neut::after{background:var(--hold)}
+.ind-lbl{font-size:8px;letter-spacing:1px;color:var(--text2);font-family:'Orbitron',monospace;margin-bottom:3px}
+.ind-val{font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:700}
+.ind-sig{font-size:8px;margin-top:2px}
+.bull{color:var(--buy)}.bear{color:var(--sell)}.neut{color:var(--hold)}
+
+.sig-box{display:flex;align-items:center;gap:14px;padding:14px;margin-bottom:12px;border:1px solid var(--border)}
+.sig-box.BUY{background:rgba(0,255,136,.05);border-color:var(--buy2);box-shadow:var(--glow-buy)}
+.sig-box.SELL{background:rgba(255,51,85,.05);border-color:var(--sell2);box-shadow:var(--glow-sell)}
+.sig-box.HOLD{background:rgba(255,170,0,.05);border-color:#885500}
+.sig-badge{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;letter-spacing:2px;min-width:90px;text-align:center;padding:9px;border:2px solid currentColor}
+.sig-badge.BUY{color:var(--buy)}.sig-badge.SELL{color:var(--sell)}.sig-badge.HOLD{color:var(--hold)}
+.sig-info{flex:1}
+.sig-lbl{font-size:10px;color:var(--text2);letter-spacing:1px;margin-bottom:3px}
+.sig-txt{font-size:12px;color:var(--text);line-height:1.5}
+.str-bar{margin-top:7px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.str-fill{height:100%;border-radius:2px;transition:width .8s ease}
+.str-pct{font-family:'Share Tech Mono',monospace;font-size:18px;min-width:50px;text-align:right}
+
+.ai-box{background:var(--bg2);border:1px solid var(--border);padding:12px;font-size:11px;line-height:1.8;color:var(--text);min-height:70px}
+.thinking{display:flex;align-items:center;gap:8px;color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:10px}
+.dots span{display:inline-block;width:4px;height:4px;background:var(--accent);border-radius:50%;animation:dp 1.2s infinite;margin-right:3px}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,60%,100%{opacity:.2;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(26,58,92,.4);font-size:11px}
+.stat-row:last-child{border-bottom:none}
+.stat-lbl{color:var(--text2)}.stat-val{font-family:'Share Tech Mono',monospace;color:var(--text)}
+
+.hist-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(26,58,92,.3);font-size:10px}
+.hbadge{font-family:'Orbitron',monospace;font-size:8px;padding:2px 7px}
+.hbadge.BUY{background:rgba(0,255,136,.15);color:var(--buy)}
+.hbadge.SELL{background:rgba(255,51,85,.15);color:var(--sell)}
+.hbadge.HOLD{background:rgba(255,170,0,.15);color:var(--hold)}
+.htime{color:var(--text2);font-family:'Share Tech Mono',monospace;flex:1}
+.hprice{font-family:'Share Tech Mono',monospace;color:var(--text)}
+
+.prog-bar{display:none;align-items:center;gap:8px;padding:7px 12px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);margin-bottom:10px;font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--accent)}
+.prog-bar.on{display:flex}
+
+.status{display:flex;justify-content:space-between;padding:5px 12px;background:var(--bg2);border-top:1px solid var(--border);font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--text2);margin-top:12px;flex-wrap:wrap;gap:4px}
+select{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-family:'Share Tech Mono',monospace;font-size:10px;outline:none}
+
+.err-box{background:rgba(255,51,85,.08);border:1px solid var(--sell2);padding:12px;border-radius:2px;font-size:11px;color:var(--text);line-height:1.8;display:none}
+.err-box.on{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="header">
+  <div>
+    <div class="logo">QUANTUM<span>TRADE</span> // AI분석</div>
+    <div class="logo-sub">✓ 캔들스틱 | 실시간 시세 | v5.0</div>
+  </div>
+  <div class="live-wrap">
+    <div class="live-ind"><div class="live-dot"></div>LIVE</div>
+    <div class="sys-time" id="sysTime">--:--:--</div>
+  </div>
+</div>
+
+<div class="search-row">
+  <div class="search-wrap">
+    <input type="text" id="symInput" placeholder="종목코드 (TSLA, AAPL, NVDA ...)" value="TSLA">
+  </div>
+  <button class="btn btn-load" onclick="loadStock()">▶ 불러오기</button>
+  <button class="btn btn-ai" onclick="runAI()">🤖 AI분석</button>
+</div>
+
+<div class="chips">
+  <span class="chip on" onclick="pick(this,'TSLA')">TSLA</span>
+  <span class="chip" onclick="pick(this,'AAPL')">AAPL</span>
+  <span class="chip" onclick="pick(this,'NVDA')">NVDA</span>
+  <span class="chip" onclick="pick(this,'MSFT')">MSFT</span>
+  <span class="chip" onclick="pick(this,'AMZN')">AMZN</span>
+  <span class="chip" onclick="pick(this,'META')">META</span>
+  <span class="chip" onclick="pick(this,'GOOGL')">GOOGL</span>
+  <span class="chip" onclick="pick(this,'NFLX')">NFLX</span>
+  <span class="chip" onclick="pick(this,'005930.KS')">삼성전자</span>
+  <span class="chip" onclick="pick(this,'000660.KS')">SK하이닉스</span>
+  <span class="chip" onclick="pick(this,'035420.KS')">NAVER</span>
+</div>
+
+<div class="prog-bar" id="progBar">
+  <div class="dots"><span></span><span></span><span></span></div>
+  <span id="progTxt">분석 중...</span>
+</div>
+
+<div class="grid">
+  <div class="left">
+
+    <div class="panel" style="position:relative">
+      <div class="chart-loading" id="chartLoad">
+        <div class="loading-txt" id="loadTxt">데이터 로딩 중...</div>
+        <div class="loading-sub" id="loadSub">Finnhub API 연결 중</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div class="ptitle" style="margin-bottom:0">CANDLESTICK // 캔들스틱</div>
+        <div class="price-bar" style="margin-bottom:0">
+          <span class="sym" id="symLbl">TSLA</span>
+          <span class="cur-p" id="curPrice">--</span>
+          <span class="chg" id="chgBadge">--</span>
+          <span class="src-tag loading" id="srcTag">대기중</span>
+        </div>
+      </div>
+      <div class="err-box" id="errBox"></div>
+      <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+      <div class="ptitle" style="margin-bottom:6px">VOLUME</div>
+      <div class="vol-wrap"><canvas id="volChart"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">TECHNICAL INDICATORS</div>
+      <div class="ind-grid" id="indGrid">
+        <div class="ind-card neut"><div class="ind-lbl">RSI (14)</div><div class="ind-val neut" id="v-rsi">--</div><div class="ind-sig neut" id="s-rsi">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">MACD</div><div class="ind-val neut" id="v-macd">--</div><div class="ind-sig neut" id="s-macd">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">볼린저밴드</div><div class="ind-val neut" id="v-bb">--</div><div class="ind-sig neut" id="s-bb">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">MA 20/50</div><div class="ind-val neut" id="v-ma">--</div><div class="ind-sig neut" id="s-ma">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">스토캐스틱</div><div class="ind-val neut" id="v-st">--</div><div class="ind-sig neut" id="s-st">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">ATR 변동성</div><div class="ind-val neut" id="v-atr">--</div><div class="ind-sig neut" id="s-atr">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">OBV</div><div class="ind-val neut" id="v-obv">--</div><div class="ind-sig neut" id="s-obv">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">종합신호</div><div class="ind-val neut" id="v-tot">--</div><div class="ind-sig neut" id="s-tot">대기중</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">TRADING SIGNAL // 매매 타이밍</div>
+      <div class="sig-box HOLD" id="sigBox">
+        <div class="sig-badge HOLD" id="sigBadge">HOLD</div>
+        <div class="sig-info">
+          <div class="sig-lbl">현재 신호</div>
+          <div class="sig-txt" id="sigTxt">종목을 불러오고 AI 분석을 실행하세요.</div>
+          <div class="str-bar"><div class="str-fill" id="strFill" style="width:50%;background:var(--hold)"></div></div>
+        </div>
+        <div class="str-pct neut" id="strPct">50%</div>
+      </div>
+      <div class="ptitle" style="margin-top:4px">AI ANALYSIS // Claude 분석</div>
+      <div class="ai-box" id="aiBox">
+        <div class="thinking"><span>▶ AI 분석 버튼을 눌러 기술적 분석을 시작하세요</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="right">
+    <div class="panel">
+      <div class="ptitle">KEY STATS</div>
+      <div class="stat-row"><span class="stat-lbl">현재가</span><span class="stat-val" id="st-cur" style="color:#fff;font-size:13px">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">전일대비</span><span class="stat-val" id="st-chg">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">52주 최고</span><span class="stat-val" id="st-h52">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">52주 최저</span><span class="stat-val" id="st-l52">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">시가</span><span class="stat-val" id="st-open">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">전일종가</span><span class="stat-val" id="st-pc">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">일중 고가</span><span class="stat-val" id="st-dh">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">일중 저가</span><span class="stat-val" id="st-dl">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">거래량</span><span class="stat-val" id="st-vol">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">목표가(AI)</span><span class="stat-val" id="st-tgt" style="color:var(--buy)">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">손절가(AI)</span><span class="stat-val" id="st-stp" style="color:var(--sell)">--</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">SUPPORT / RESISTANCE</div>
+      <div style="font-size:8px;color:var(--sell);letter-spacing:1px;margin-bottom:5px">▲ 저항선</div>
+      <div id="resLvl" style="display:flex;flex-direction:column;gap:3px"></div>
+      <div style="padding:7px;background:rgba(0,212,255,.05);border:1px solid var(--border);font-family:'Share Tech Mono';font-size:12px;text-align:center;margin:7px 0">
+        현재가: <span id="curLvl" style="color:var(--accent)">--</span>
+      </div>
+      <div style="font-size:8px;color:var(--buy);letter-spacing:1px;margin-bottom:5px">▼ 지지선</div>
+      <div id="supLvl" style="display:flex;flex-direction:column;gap:3px"></div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">SIGNAL LOG</div>
+      <div id="sigHist" style="max-height:180px;overflow-y:auto">
+        <div style="color:var(--text2);font-size:10px;font-family:'Share Tech Mono'">신호 없음</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">AUTO REFRESH</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div class="stat-row" style="padding:5px 0">
+          <span class="stat-lbl">갱신 주기</span>
+          <select id="refInt">
+            <option value="0">수동</option>
+            <option value="60" selected>1분</option>
+            <option value="300">5분</option>
+          </select>
+        </div>
+        <button class="btn btn-load" style="width:100%;padding:9px" onclick="toggleAuto()" id="autoBtn">▶ 자동분석 시작</button>
+        <div style="font-size:9px;color:var(--text2);font-family:'Share Tech Mono';text-align:center" id="autoTxt">--</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status">
+  <span id="statusMsg">▶ 종목을 선택하고 불러오기를 클릭하세요</span>
+  <span>QUANTUMTRADE AI v5.0 // 2026.03.17</span>
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+const FKEY = 'd6sdh3hr01qj447b90agd6sdh3hr01qj447b90b0';
+const KR_MAP = {
+  '005930.KS':'KRX:005930',
+  '000660.KS':'KRX:000660',
+  '035420.KS':'KRX:035420',
+  '035720.KS':'KRX:035720'
+};
+
+let SYM='TSLA', pChart=null, vChart=null, stockData=null;
+let sigHistory=[], autoTimer=null, autoActive=false, cdTimer=null;
+
+// ══════════════════════════════════════════════
+// TIME
+// ══════════════════════════════════════════════
+setInterval(()=>{
+  document.getElementById('sysTime').textContent =
+    new Date().toLocaleTimeString('ko-KR',{hour12:false})+' KST';
+},1000);
+
+// ══════════════════════════════════════════════
+// SYMBOL
+// ══════════════════════════════════════════════
+function pick(el, sym) {
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('symInput').value = sym;
+  SYM = sym;
+  loadStock();
+}
+
+function setTag(txt, state) { // state: 'ok'|'err'|'loading'
+  const el = document.getElementById('srcTag');
+  el.textContent = txt;
+  el.className = 'src-tag ' + state;
+}
+
+function setStatus(msg) {
+  document.getElementById('statusMsg').textContent = msg;
+}
+
+// ══════════════════════════════════════════════
+// FINNHUB FETCH (CORS 허용 — 직접 호출 가능)
+// ══════════════════════════════════════════════
+async function fetchFinnhub(path) {
+  const url = `https://finnhub.io/api/v1/${path}&token=${FKEY}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+async function loadStock() {
+  const sym = document.getElementById('symInput').value.trim().toUpperCase() || 'TSLA';
+  SYM = sym;
+  const isKR = sym.endsWith('.KS');
+  const fsym = KR_MAP[sym] || sym;
+
+  // UI reset
+  document.getElementById('chartLoad').classList.add('on');
+  document.getElementById('loadTxt').textContent = '데이터 로딩 중...';
+  document.getElementById('loadSub').textContent = `Finnhub → ${sym}`;
+  document.getElementById('errBox').classList.remove('on');
+  setTag('연결중...','loading');
+  setStatus(`▶ ${sym} 실시간 데이터 로딩 중...`);
+
+  try {
+    // 1) 현재가 (실시간)
+    document.getElementById('loadSub').textContent = '현재가 조회 중...';
+    const q = await fetchFinnhub(`quote?symbol=${encodeURIComponent(fsym)}`);
+
+    if (!q.c || q.c === 0) {
+      throw new Error(`'${sym}' 종목을 찾을 수 없습니다. 심볼을 확인하세요.`);
+    }
+
+    // 2) 일봉 캔들 (6개월)
+    document.getElementById('loadSub').textContent = '차트 데이터 조회 중...';
+    const to = Math.floor(Date.now()/1000);
+    const from = to - 86400 * 180;
+    const c = await fetchFinnhub(
+      `stock/candle?symbol=${encodeURIComponent(fsym)}&resolution=D&from=${from}&to=${to}`
+    );
+
+    if (c.s !== 'ok' || !c.t || c.t.length === 0) {
+      throw new Error('캔들 데이터 없음 — 한국주식은 KRX:XXXXXX 형식으로 입력하세요');
+    }
+
+    // 3) 52주 지표
+    document.getElementById('loadSub').textContent = '지표 조회 중...';
+    let metric = {};
+    try {
+      const m = await fetchFinnhub(`stock/metric?symbol=${encodeURIComponent(fsym)}&metric=all`);
+      metric = m.metric || {};
+    } catch(e) {}
+
+    // 캔들 가공
+    const candles = c.t.map((t,i) => ({
+      x: t * 1000,
+      o: c.o[i], h: c.h[i], l: c.l[i], c: c.c[i], v: c.v[i]
+    })).filter(x => x.c > 0 && x.o > 0);
+
+    // 마지막 캔들에 실시간 현재가 반영
+    const cur = q.c;
+    if (candles.length > 0) {
+      candles[candles.length-1].c = cur;
+      if (cur > candles[candles.length-1].h) candles[candles.length-1].h = cur;
+      if (cur < candles[candles.length-1].l) candles[candles.length-1].l = cur;
+    }
+
+    const pc = q.pc || candles[candles.length-2]?.c || cur;
+    const data = {
+      sym, fsym, candles, cur, pc,
+      chg: q.d || (cur - pc),
+      chgPct: q.dp || ((cur - pc) / pc * 100),
+      open: q.o || candles.slice(-1)[0].o,
+      dHigh: q.h || candles.slice(-1)[0].h,
+      dLow: q.l || candles.slice(-1)[0].l,
+      h52: metric['52WeekHigh'] || Math.max(...candles.map(c=>c.h)),
+      l52: metric['52WeekLow']  || Math.min(...candles.map(c=>c.l)),
+      vol: candles.slice(-1)[0].v,
+      currency: isKR ? 'KRW' : 'USD',
+    };
+
+    stockData = data;
+    document.getElementById('chartLoad').classList.remove('on');
+    updateUI(data);
+    setTag('Finnhub ✓', 'ok');
+    const fp = v => isKR ? Math.round(v).toLocaleString('ko-KR')+'원' : '$'+v.toFixed(2);
+    setStatus(`✓ Finnhub 실시간 | ${sym} | 현재가: ${fp(cur)} | ${candles.length}일치 | ${new Date().toLocaleTimeString('ko-KR')}`);
+
+  } catch(e) {
+    document.getElementById('chartLoad').classList.remove('on');
+    setTag('오류', 'err');
+    setStatus(`⚠ ${e.message}`);
+    const eb = document.getElementById('errBox');
+    eb.classList.add('on');
+    eb.innerHTML = `
+      <strong style="color:var(--sell)">⚠ 데이터 로드 실패</strong><br><br>
+      <span style="color:var(--text2)">${e.message}</span><br><br>
+      <strong style="color:var(--accent)">해결 방법:</strong><br>
+      • 미국주식: TSLA, AAPL, NVDA (대문자)<br>
+      • 한국주식: 005930.KS (삼성전자)<br>
+      • Finnhub 무료플랜은 미국주식만 지원<br>
+      • 네트워크 연결 확인
+    `;
+    console.error('loadStock error:', e);
+  }
+}
+
+// ══════════════════════════════════════════════
+// UI UPDATE
+// ══════════════════════════════════════════════
+function updateUI(d) {
+  const isKR = d.currency === 'KRW';
+  const fp = v => isKR ? Math.round(v).toLocaleString('ko-KR')+'원' : '$'+v.toFixed(2);
+  const fv = v => v ? (v/1e6).toFixed(1)+'M' : '--';
+
+  document.getElementById('symLbl').textContent = d.sym;
+  document.getElementById('curPrice').textContent = fp(d.cur);
+  document.getElementById('curLvl').textContent = fp(d.cur);
+
+  const isUp = d.chgPct >= 0;
+  const pe = document.getElementById('chgBadge');
+  pe.textContent = (isUp?'+':'') + d.chgPct.toFixed(2) + '%';
+  pe.className = 'chg ' + (isUp?'up':'dn');
+
+  document.getElementById('st-cur').textContent = fp(d.cur);
+  const ce = document.getElementById('st-chg');
+  ce.textContent = (isUp?'+':'') + d.chg.toFixed(2) + ' (' + (isUp?'+':'') + d.chgPct.toFixed(2) + '%)';
+  ce.className = 'stat-val ' + (isUp?'bull':'bear');
+  document.getElementById('st-h52').textContent = fp(d.h52);
+  document.getElementById('st-l52').textContent = fp(d.l52);
+  document.getElementById('st-open').textContent = fp(d.open);
+  document.getElementById('st-pc').textContent = fp(d.pc);
+  document.getElementById('st-dh').textContent = fp(d.dHigh);
+  document.getElementById('st-dl').textContent = fp(d.dLow);
+  document.getElementById('st-vol').textContent = fv(d.vol);
+
+  drawCandles(d.candles);
+  calcInds(d.candles, d.cur, fp);
+  calcSR(d.candles, d.cur, fp);
+}
+
+// ══════════════════════════════════════════════
+// CANDLESTICK CHART
+// ══════════════════════════════════════════════
+function maArr(data, p) {
+  return data.map((_,i) => i<p-1 ? null : data.slice(i-p+1,i+1).reduce((a,b)=>a+b,0)/p);
+}
+function emaVal(data, p) {
+  const k=2/(p+1);
+  let e=data.slice(0,p).reduce((a,b)=>a+b,0)/p;
+  for(let i=p;i<data.length;i++) e=data[i]*k+e*(1-k);
+  return e;
+}
+function bbArr(data, p=20, m=2) {
+  const u=[],l=[];
+  data.forEach((_,i)=>{
+    if(i<p-1){u.push(null);l.push(null);return}
+    const s=data.slice(i-p+1,i+1),mn=s.reduce((a,b)=>a+b,0)/p;
+    const std=Math.sqrt(s.reduce((a,b)=>a+(b-mn)**2,0)/p);
+    u.push(mn+m*std); l.push(mn-m*std);
+  });
+  return {upper:u,lower:l};
+}
+
+function drawCandles(candles) {
+  if(pChart){pChart.destroy();pChart=null}
+  if(vChart){vChart.destroy();vChart=null}
+
+  const closes = candles.map(c=>c.c);
+  const ma20 = maArr(closes,20);
+  const ma50 = maArr(closes,50);
+  const bb = bbArr(closes,20);
+
+  const lineDs = (arr, color, dash=[]) => ({
+    type:'line',
+    data: candles.map((c,i)=>({x:c.x, y:arr[i]})).filter(p=>p.y!=null),
+    borderColor:color, borderWidth:1.2, pointRadius:0,
+    borderDash:dash, fill:false, tension:0.1, order:2
+  });
+
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  pChart = new Chart(ctx, {
+    data: {
+      datasets: [
+        {
+          type: 'candlestick',
+          label: SYM,
+          data: candles.map(c=>({x:c.x, o:c.o, h:c.h, l:c.l, c:c.c})),
+          color: { up:'#00ff88', down:'#ff3355', unchanged:'#7a9bb5' },
+          borderColor: { up:'#00cc66', down:'#cc2244', unchanged:'#5a7a95' },
+          order: 1
+        },
+        {...lineDs(ma20,'#ffaa00'), label:'MA20'},
+        {...lineDs(ma50,'#ff6644'), label:'MA50'},
+        {...lineDs(bb.upper,'rgba(200,224,240,0.3)',[4,4]), label:'BB상단'},
+        {...lineDs(bb.lower,'rgba(200,224,240,0.3)',[4,4]), label:'BB하단'},
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      animation:{duration:500},
+      interaction:{intersect:false, mode:'index'},
+      plugins:{
+        legend:{labels:{color:'#7a9bb5', font:{size:9}, boxWidth:16}},
+        tooltip:{
+          backgroundColor:'#0d1c2e', borderColor:'#1a3a5c', borderWidth:1,
+          titleColor:'#00d4ff', bodyColor:'#c8e0f0',
+          callbacks:{
+            title: items => items[0] ? new Date(items[0].parsed.x).toLocaleDateString('ko-KR') : '',
+            label: item => {
+              if(item.dataset.type==='candlestick'){
+                const r=item.raw;
+                return ` O:${r.o?.toFixed(2)} H:${r.h?.toFixed(2)} L:${r.l?.toFixed(2)} C:${r.c?.toFixed(2)}`;
+              }
+              return ` ${item.dataset.label}: ${item.parsed?.y?.toFixed(2)??''}`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{type:'time', time:{unit:'day', displayFormats:{day:'MM/dd'}},
+           ticks:{color:'#7a9bb5', font:{size:8}, maxTicksLimit:10},
+           grid:{color:'rgba(26,58,92,0.4)'}},
+        y:{ticks:{color:'#7a9bb5', font:{size:9}},
+           grid:{color:'rgba(26,58,92,0.4)'}, position:'right'}
+      }
+    }
+  });
+
+  const vc = document.getElementById('volChart').getContext('2d');
+  vChart = new Chart(vc, {
+    type:'bar',
+    data:{datasets:[{
+      data: candles.map(c=>({x:c.x, y:c.v})),
+      backgroundColor: candles.map(c=>c.c>=c.o?'rgba(0,255,136,0.5)':'rgba(255,51,85,0.5)'),
+      borderWidth:0
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{type:'time', time:{unit:'day'}, ticks:{display:false}, grid:{display:false}},
+        y:{ticks:{color:'#7a9bb5', font:{size:8}, maxTicksLimit:3},
+           grid:{color:'rgba(26,58,92,0.3)'}, position:'right'}
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+// INDICATORS
+// ══════════════════════════════════════════════
+function rsiVal(closes,p=14){
+  const ch=closes.slice(1).map((c,i)=>c-closes[i]);
+  let ag=0,al=0;
+  for(let i=0;i<p;i++){if(ch[i]>0)ag+=ch[i];else al-=ch[i]}
+  ag/=p;al/=p;
+  for(let i=p;i<ch.length;i++){
+    ag=(ag*(p-1)+(ch[i]>0?ch[i]:0))/p;
+    al=(al*(p-1)+(ch[i]<0?-ch[i]:0))/p;
+  }
+  return al===0?100:100-(100/(1+ag/al));
+}
+function stochVal(candles,p=14){
+  const last=candles.slice(-p);
+  const h=Math.max(...last.map(c=>c.h)), lo=Math.min(...last.map(c=>c.l));
+  return ((candles.slice(-1)[0].c - lo)/(h-lo))*100;
+}
+function atrVal(candles,p=14){
+  const trs=candles.slice(1).map((c,i)=>Math.max(c.h-c.l,Math.abs(c.h-candles[i].c),Math.abs(c.l-candles[i].c)));
+  return trs.slice(-p).reduce((a,b)=>a+b,0)/p;
+}
+function setInd(idx,val,cls,sig){
+  const ids=['rsi','macd','bb','ma','st','atr','obv','tot'];
+  document.querySelectorAll('#indGrid .ind-card')[idx].className=`ind-card ${cls}`;
+  document.getElementById('v-'+ids[idx]).textContent=val;
+  document.getElementById('v-'+ids[idx]).className=`ind-val ${cls}`;
+  document.getElementById('s-'+ids[idx]).textContent=sig;
+  document.getElementById('s-'+ids[idx]).className=`ind-sig ${cls}`;
+}
+
+function calcInds(candles, cur, fp) {
+  const closes = candles.map(c=>c.c);
+
+  // RSI
+  const rsi = rsiVal(closes);
+  let rc='neut',rt='중립';
+  if(rsi<30){rc='bull';rt='과매도(매수)'}
+  else if(rsi<45){rc='bull';rt='매수 우위'}
+  else if(rsi>70){rc='bear';rt='과매수(매도)'}
+  else if(rsi>55){rc='bear';rt='매도 우위'}
+  setInd(0, rsi.toFixed(1), rc, rt);
+
+  // MACD
+  const e12=emaVal(closes,12), e26=emaVal(closes,26), macd=e12-e26;
+  const mc=macd>0?'bull':'bear';
+  setInd(1, macd.toFixed(2), mc, macd>0?'MACD 상향':'MACD 하향');
+
+  // BB
+  const bb=bbArr(closes,20);
+  const bbU=bb.upper[bb.upper.length-1], bbL=bb.lower[bb.lower.length-1];
+  const bbP=((cur-bbL)/(bbU-bbL)*100).toFixed(0);
+  let bbc='neut',bbt='밴드 중간';
+  if(cur<bbL*1.01){bbc='bull';bbt='하단근접(매수)'}
+  else if(cur>bbU*0.99){bbc='bear';bbt='상단근접(매도)'}
+  setInd(2, bbP+'%', bbc, bbt);
+
+  // MA
+  const ma20=emaVal(closes,20), ma50=emaVal(closes,50);
+  const mac=ma20>ma50&&cur>ma20?'bull':ma20<ma50&&cur<ma20?'bear':'neut';
+  setInd(3, ma20.toFixed(2), mac, ma20>ma50?'골든크로스':ma20<ma50?'데드크로스':'MA 혼재');
+
+  // Stoch
+  const st=stochVal(candles);
+  let stc='neut',stt='중립';
+  if(st<20){stc='bull';stt='과매도'}else if(st>80){stc='bear';stt='과매수'}
+  setInd(4, st.toFixed(1), stc, stt);
+
+  // ATR
+  const atr=atrVal(candles), atrP=(atr/cur*100).toFixed(1);
+  setInd(5, atrP+'%', parseFloat(atrP)>3?'bear':parseFloat(atrP)>2?'neut':'bull',
+    parseFloat(atrP)>3?'고변동성':parseFloat(atrP)>2?'보통':'저변동성');
+
+  // OBV
+  let obv=0;
+  candles.forEach((c,i)=>{if(i===0)return; if(c.c>candles[i-1].c)obv+=c.v; else if(c.c<candles[i-1].c)obv-=c.v});
+  setInd(6, (obv/1e6).toFixed(1)+'M', obv>0?'bull':'bear', obv>0?'매집':'분산');
+
+  // Overall
+  const cls=[rc, mc, bbc, mac, stc, obv>0?'bull':'bear'];
+  const bull=cls.filter(x=>x==='bull').length, bear=cls.filter(x=>x==='bear').length;
+  let oc,os,ot;
+  if(bull>=4){oc='bull';os='BUY';ot=`매수신호 ${bull}/6`}
+  else if(bear>=4){oc='bear';os='SELL';ot=`매도신호 ${bear}/6`}
+  else{oc='neut';os='HOLD';ot=`관망(${bull}매수/${bear}매도)`}
+  setInd(7, os, oc, ot);
+
+  // Signal box
+  const sb=document.getElementById('sigBox');
+  const badge=document.getElementById('sigBadge');
+  sb.className=`sig-box ${os}`;
+  badge.className=`sig-badge ${os}`;
+  badge.textContent=os;
+  const str=os==='BUY'?bull/6*100:os==='SELL'?bear/6*100:50;
+  document.getElementById('strFill').style.cssText=`width:${str}%;background:${os==='BUY'?'var(--buy)':os==='SELL'?'var(--sell)':'var(--hold)'}`;
+  document.getElementById('strPct').textContent=Math.round(str)+'%';
+  document.getElementById('strPct').className='str-pct '+(os==='BUY'?'bull':os==='SELL'?'bear':'neut');
+  document.getElementById('sigTxt').textContent={
+    BUY:`매수신호 ${bull}개 감지. 기술적 지표 상승 전환.`,
+    SELL:`매도신호 ${bear}개 감지. 과매수, 차익실현 고려.`,
+    HOLD:`신호 혼재 (매수${bull}/매도${bear}). 추가 확인 권장.`
+  }[os];
+  document.getElementById('st-tgt').textContent=fp(cur*(os==='SELL'?0.97:1.05));
+  document.getElementById('st-stp').textContent=fp(cur*(os==='SELL'?1.03:0.97));
+
+  // History
+  const t=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  sigHistory.unshift({os,cur,t,sym:SYM});
+  if(sigHistory.length>10)sigHistory.pop();
+  document.getElementById('sigHist').innerHTML=sigHistory.map(h=>`
+    <div class="hist-item">
+      <span class="hbadge ${h.os}">${h.os}</span>
+      <span style="color:var(--text2);font-size:9px">${h.sym}</span>
+      <span class="htime">${h.t}</span>
+      <span class="hprice">${fp(h.cur)}</span>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// S/R
+// ══════════════════════════════════════════════
+function calcSR(candles, cur, fp) {
+  const res=[], sup=[];
+  for(let i=5;i<candles.length-5;i++){
+    const c=candles[i];
+    if(c.h>cur&&c.h>candles[i-1].h&&c.h>candles[i+1].h&&c.h>candles[i-2].h&&c.h>candles[i+2].h&&res.length<3) res.push(c.h);
+    if(c.l<cur&&c.l<candles[i-1].l&&c.l<candles[i+1].l&&c.l<candles[i-2].l&&c.l<candles[i+2].l&&sup.length<3) sup.push(c.l);
+  }
+  const d=v=>((v-cur)/cur*100).toFixed(1);
+  const html=(lvls,isR)=>lvls.slice(0,3).sort(isR?(a,b)=>a-b:(a,b)=>b-a).map(l=>`
+    <div style="display:flex;justify-content:space-between;padding:4px 7px;background:${isR?'rgba(255,51,85,0.08)':'rgba(0,255,136,0.08)'};border-left:2px solid ${isR?'var(--sell2)':'var(--buy2)'};font-family:'Share Tech Mono';font-size:10px">
+      <span style="color:${isR?'var(--sell)':'var(--buy)'}">${fp(l)}</span>
+      <span style="color:var(--text2)">${isR?'+':''}${d(l)}%</span>
+    </div>`).join('');
+  document.getElementById('resLvl').innerHTML=res.length?html(res,true):'<div style="color:var(--text2);font-size:9px">없음</div>';
+  document.getElementById('supLvl').innerHTML=sup.length?html(sup,false):'<div style="color:var(--text2);font-size:9px">없음</div>';
+}
+
+// ══════════════════════════════════════════════
+// AI ANALYSIS
+// ══════════════════════════════════════════════
+async function runAI() {
+  if(!stockData){alert('먼저 종목을 불러오세요!');return}
+  document.getElementById('progBar').classList.add('on');
+  document.getElementById('progTxt').textContent='Claude AI 분석 중...';
+  document.getElementById('aiBox').innerHTML='<div class="thinking"><div class="dots"><span></span><span></span><span></span></div><span style="margin-left:8px">Claude AI 분석 중...</span></div>';
+
+  const d=stockData, closes=d.candles.map(c=>c.c);
+  const rsi=rsiVal(closes);
+  const e12=emaVal(closes,12),e26=emaVal(closes,26),macd=e12-e26;
+  const bb=bbArr(closes,20),bbU=bb.upper[bb.upper.length-1],bbL=bb.lower[bb.lower.length-1];
+  const ma20=emaVal(closes,20),ma50=emaVal(closes,50);
+  const st=stochVal(d.candles),atr=atrVal(d.candles);
+  const c5=((d.cur-closes[closes.length-6])/closes[closes.length-6]*100).toFixed(2);
+  const c20=((d.cur-closes[closes.length-21])/closes[closes.length-21]*100).toFixed(2);
+
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:800,
+        messages:[{role:'user',content:
+          `전문 주식 기술적 분석가로서 한국어로 분석해주세요. 오늘은 2026년 3월 17일입니다.\n\n종목: ${SYM}\n현재가: ${d.cur.toFixed(2)} (${d.currency})\n전일대비: ${d.chgPct>=0?'+':''}${d.chgPct.toFixed(2)}%\n5일수익률: ${c5}%  20일수익률: ${c20}%\n\nRSI(14): ${rsi.toFixed(1)}\nMACD: ${macd.toFixed(3)}\n볼린저밴드 위치: ${((d.cur-bbL)/(bbU-bbL)*100).toFixed(0)}%\nMA20: ${ma20.toFixed(2)} / MA50: ${ma50.toFixed(2)}\n스토캐스틱: ${st.toFixed(1)}\nATR변동성: ${(atr/d.cur*100).toFixed(2)}%\n\n다음 형식으로 분석:\n1. **현재상황**: (2문장)\n2. **매수타이밍**: 진입조건과 목표가\n3. **매도타이밍**: 차익실현 및 손절\n4. **리스크**: (1문장)\n5. **최종신호**: BUY/SELL/HOLD (신뢰도%)`
+        }]
+      })
+    });
+    const data=await r.json();
+    document.getElementById('aiBox').innerHTML=data.content[0].text
+      .replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--accent)">$1</strong>')
+      .replace(/\bBUY\b/g,'<span style="color:var(--buy);font-weight:700">BUY</span>')
+      .replace(/\bSELL\b/g,'<span style="color:var(--sell);font-weight:700">SELL</span>')
+      .replace(/\bHOLD\b/g,'<span style="color:var(--hold);font-weight:700">HOLD</span>')
+      .replace(/\n/g,'<br>');
+  }catch(e){
+    document.getElementById('aiBox').innerHTML=`<span style="color:var(--text2)">AI 오류: ${e.message}</span>`;
+  }finally{
+    document.getElementById('progBar').classList.remove('on');
+  }
+}
+
+// ══════════════════════════════════════════════
+// AUTO REFRESH
+// ══════════════════════════════════════════════
+function toggleAuto() {
+  const btn=document.getElementById('autoBtn');
+  const sec=parseInt(document.getElementById('refInt').value);
+  if(autoActive||sec===0){
+    clearInterval(autoTimer);clearInterval(cdTimer);
+    autoActive=false;btn.textContent='▶ 자동분석 시작';btn.style.background='';
+    document.getElementById('autoTxt').textContent='--';return;
+  }
+  autoActive=true;btn.textContent='■ 중지';
+  btn.style.background='linear-gradient(135deg,#3a1020,#5a1530)';
+  let cd=sec;
+  const upd=()=>{document.getElementById('autoTxt').textContent=`다음갱신: ${cd}초후`;if(--cd<0)cd=sec};
+  upd(); cdTimer=setInterval(upd,1000);
+  autoTimer=setInterval(async()=>{await loadStock();await runAI()},sec*1000);
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+document.getElementById('symInput').addEventListener('keypress',e=>{if(e.key==='Enter')loadStock()});
+window.addEventListener('load', loadStock);
+</script>
+</body>
+</html>
