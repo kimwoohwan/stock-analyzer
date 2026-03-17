@@ -2,1667 +2,587 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 주식 기술적 분석 시스템</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>QUANTUMTRADE AI v6.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Noto+Sans+KR:wght@300;400;700&display=swap');
-
-  :root {
-    --bg: #050a0f;
-    --bg2: #080f18;
-    --bg3: #0a1520;
-    --panel: #0d1c2e;
-    --panel2: #0f2035;
-    --border: #1a3a5c;
-    --accent: #00d4ff;
-    --accent2: #0088aa;
-    --buy: #00ff88;
-    --buy2: #00cc66;
-    --sell: #ff3355;
-    --sell2: #cc2244;
-    --hold: #ffaa00;
-    --text: #c8e0f0;
-    --text2: #7a9bb5;
-    --glow: 0 0 20px rgba(0,212,255,0.3);
-    --glow-buy: 0 0 20px rgba(0,255,136,0.4);
-    --glow-sell: 0 0 20px rgba(255,51,85,0.4);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Animated grid background */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* Scanline effect */
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.05) 2px,
-      rgba(0,0,0,0.05) 4px
-    );
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 16px; }
-
-  /* Header */
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 20px;
-    background: linear-gradient(135deg, var(--panel) 0%, var(--panel2) 100%);
-    border: 1px solid var(--border);
-    border-bottom: 2px solid var(--accent);
-    margin-bottom: 16px;
-    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
-    box-shadow: var(--glow);
-  }
-
-  .logo {
-    font-family: 'Orbitron', monospace;
-    font-size: 18px;
-    font-weight: 900;
-    color: var(--accent);
-    letter-spacing: 2px;
-    text-shadow: 0 0 15px rgba(0,212,255,0.7);
-  }
-
-  .logo span { color: var(--buy); }
-
-  .system-time {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 13px;
-    color: var(--accent);
-    opacity: 0.8;
-  }
-
-  /* Search bar */
-  .search-section {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-    align-items: center;
-  }
-
-  .search-wrapper {
-    flex: 1;
-    position: relative;
-  }
-
-  .search-wrapper::before {
-    content: '▶';
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--accent);
-    font-size: 12px;
-  }
-
-  input[type="text"] {
-    width: 100%;
-    padding: 12px 16px 12px 36px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 14px;
-    letter-spacing: 1px;
-    outline: none;
-    transition: all 0.3s;
-  }
-
-  input[type="text"]:focus {
-    border-color: var(--accent);
-    background: var(--panel2);
-    box-shadow: var(--glow);
-  }
-
-  input[type="text"]::placeholder { color: var(--text2); }
-
-  .btn {
-    padding: 12px 20px;
-    font-family: 'Orbitron', monospace;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent2), var(--accent));
-    color: var(--bg);
-  }
-
-  .btn-primary:hover { box-shadow: var(--glow); transform: translateY(-1px); }
-
-  .btn-analyze {
-    background: linear-gradient(135deg, #1a4060, #2a5a80);
-    color: var(--accent);
-    border: 1px solid var(--accent);
-    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-  }
-
-  .btn-analyze:hover { background: linear-gradient(135deg, #2a5a80, #3a7aa0); box-shadow: var(--glow); }
-
-  /* Quick symbols */
-  .quick-symbols {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-  }
-
-  .symbol-chip {
-    padding: 5px 12px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 0.5px;
-  }
-
-  .symbol-chip:hover, .symbol-chip.active {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(0,212,255,0.05);
-  }
-
-  /* Main grid */
-  .main-grid {
-    display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 14px;
-  }
-
-  .left-col { display: flex; flex-direction: column; gap: 14px; }
-  .right-col { display: flex; flex-direction: column; gap: 14px; }
-
-  /* Panel */
-  .panel {
-    background: linear-gradient(135deg, var(--panel) 0%, var(--bg3) 100%);
-    border: 1px solid var(--border);
-    padding: 16px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .panel::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  }
-
-  .panel-title {
-    font-family: 'Orbitron', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--accent);
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .panel-title::before {
-    content: '//';
-    opacity: 0.5;
-  }
-
-  /* Stock info bar */
-  .stock-info-bar {
-    display: flex;
-    gap: 20px;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 14px;
-  }
-
-  .stock-name {
-    font-family: 'Orbitron', monospace;
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--accent);
-    text-shadow: 0 0 10px rgba(0,212,255,0.5);
-  }
-
-  .stock-price {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 28px;
-    font-weight: 700;
-    color: #fff;
-  }
-
-  .price-change {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 14px;
-    padding: 4px 10px;
-    border-radius: 2px;
-  }
-
-  .price-change.up { background: rgba(0,255,136,0.15); color: var(--buy); border: 1px solid var(--buy2); }
-  .price-change.down { background: rgba(255,51,85,0.15); color: var(--sell); border: 1px solid var(--sell2); }
-
-  /* Chart container */
-  .chart-container {
-    position: relative;
-    height: 280px;
-    margin-bottom: 14px;
-  }
-
-  /* Volume chart */
-  .volume-container {
-    position: relative;
-    height: 70px;
-  }
-
-  /* Indicators row */
-  .indicators-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  .indicator-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    padding: 10px 12px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .indicator-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0;
-    height: 2px;
-    width: 100%;
-  }
-
-  .indicator-card.bullish::after { background: var(--buy); }
-  .indicator-card.bearish::after { background: var(--sell); }
-  .indicator-card.neutral::after { background: var(--hold); }
-
-  .ind-label {
-    font-size: 9px;
-    letter-spacing: 1px;
-    color: var(--text2);
-    font-family: 'Orbitron', monospace;
-    margin-bottom: 4px;
-  }
-
-  .ind-value {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  .ind-signal {
-    font-size: 9px;
-    margin-top: 2px;
-    letter-spacing: 0.5px;
-  }
-
-  .bullish { color: var(--buy); }
-  .bearish { color: var(--sell); }
-  .neutral { color: var(--hold); }
-
-  /* Signal display */
-  .signal-display {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
-    margin-bottom: 14px;
-    border: 1px solid var(--border);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .signal-display.BUY {
-    background: rgba(0,255,136,0.05);
-    border-color: var(--buy2);
-    box-shadow: var(--glow-buy);
-  }
-
-  .signal-display.SELL {
-    background: rgba(255,51,85,0.05);
-    border-color: var(--sell2);
-    box-shadow: var(--glow-sell);
-  }
-
-  .signal-display.HOLD {
-    background: rgba(255,170,0,0.05);
-    border-color: #885500;
-  }
-
-  .signal-badge {
-    font-family: 'Orbitron', monospace;
-    font-size: 24px;
-    font-weight: 900;
-    letter-spacing: 3px;
-    min-width: 100px;
-    text-align: center;
-    padding: 10px;
-    border: 2px solid currentColor;
-    clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
-  }
-
-  .signal-badge.BUY { color: var(--buy); border-color: var(--buy); text-shadow: 0 0 15px rgba(0,255,136,0.7); }
-  .signal-badge.SELL { color: var(--sell); border-color: var(--sell); text-shadow: 0 0 15px rgba(255,51,85,0.7); }
-  .signal-badge.HOLD { color: var(--hold); border-color: var(--hold); text-shadow: 0 0 15px rgba(255,170,0,0.7); }
-
-  .signal-details { flex: 1; }
-  .signal-title { font-size: 11px; color: var(--text2); letter-spacing: 1px; margin-bottom: 4px; }
-  .signal-reason { font-size: 13px; color: var(--text); line-height: 1.5; }
-
-  .strength-bar {
-    margin-top: 8px;
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .strength-fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 1s ease;
-  }
-
-  /* AI Analysis panel */
-  .ai-analysis {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    padding: 14px;
-    font-size: 12px;
-    line-height: 1.8;
-    color: var(--text);
-    min-height: 80px;
-    position: relative;
-  }
-
-  .ai-analysis .thinking {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    color: var(--accent);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-  }
-
-  .dot-pulse {
-    display: flex;
-    gap: 4px;
-  }
-
-  .dot-pulse span {
-    width: 5px; height: 5px;
-    background: var(--accent);
-    border-radius: 50%;
-    animation: pulse 1.2s ease-in-out infinite;
-  }
-
-  .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
-  .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
-
-  @keyframes pulse {
-    0%, 60%, 100% { opacity: 0.2; transform: scale(0.8); }
-    30% % { opacity: 1; transform: scale(1); }
-  }
-
-  /* Right column panels */
-  .mini-stat {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(26,58,92,0.5);
-    font-size: 12px;
-  }
-
-  .mini-stat:last-child { border-bottom: none; }
-  .mini-stat-label { color: var(--text2); letter-spacing: 0.5px; }
-  .mini-stat-value { font-family: 'Share Tech Mono', monospace; color: var(--text); }
-
-  /* Signal history */
-  .signal-history-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(26,58,92,0.3);
-    font-size: 11px;
-  }
-
-  .hist-badge {
-    font-family: 'Orbitron', monospace;
-    font-size: 9px;
-    padding: 2px 8px;
-    letter-spacing: 1px;
-    clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
-  }
-
-  .hist-badge.BUY { background: rgba(0,255,136,0.15); color: var(--buy); }
-  .hist-badge.SELL { background: rgba(255,51,85,0.15); color: var(--sell); }
-  .hist-badge.HOLD { background: rgba(255,170,0,0.15); color: var(--hold); }
-
-  .hist-time { color: var(--text2); font-family: 'Share Tech Mono', monospace; flex: 1; }
-  .hist-price { font-family: 'Share Tech Mono', monospace; color: var(--text); }
-
-  /* Candlestick overlay indicator */
-  .live-indicator {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10px;
-    color: var(--buy);
-    font-family: 'Share Tech Mono', monospace;
-  }
-
-  .live-dot {
-    width: 6px; height: 6px;
-    background: var(--buy);
-    border-radius: 50%;
-    box-shadow: 0 0 8px var(--buy);
-    animation: blink 1s ease-in-out infinite;
-  }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.2; }
-  }
-
-  /* Progress ring */
-  .analysis-progress {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 14px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    margin-bottom: 8px;
-    font-size: 11px;
-    font-family: 'Share Tech Mono', monospace;
-    color: var(--accent);
-    display: none;
-  }
-
-  .analysis-progress.show { display: flex; }
-
-  /* Responsive */
-  @media (max-width: 900px) {
-    .main-grid { grid-template-columns: 1fr; }
-    .indicators-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); }
-
-  /* Pulse animation for new signals */
-  @keyframes signalPulse {
-    0% { box-shadow: 0 0 0 0 rgba(0,255,136,0.5); }
-    70% { box-shadow: 0 0 0 10px rgba(0,255,136,0); }
-    100% { box-shadow: 0 0 0 0 rgba(0,255,136,0); }
-  }
-
-  .new-signal { animation: signalPulse 1.5s ease-out 2; }
-
-  /* Loading overlay */
-  .loading-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(5,10,15,0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    display: none;
-  }
-
-  .loading-overlay.show { display: flex; }
-
-  .loader {
-    font-family: 'Orbitron', monospace;
-    font-size: 11px;
-    color: var(--accent);
-    letter-spacing: 2px;
-    animation: flash 0.8s ease-in-out infinite;
-  }
-
-  @keyframes flash {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  .status-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 14px;
-    background: var(--bg2);
-    border-top: 1px solid var(--border);
-    font-size: 10px;
-    font-family: 'Share Tech Mono', monospace;
-    color: var(--text2);
-    margin-top: 14px;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Noto+Sans+KR:wght@300;400;700&display=swap');
+:root{
+  --bg:#050a0f;--bg2:#080f18;--bg3:#0a1520;
+  --panel:#0d1c2e;--panel2:#0f2035;--border:#1a3a5c;
+  --accent:#00d4ff;--accent2:#0088aa;
+  --buy:#00ff88;--buy2:#00cc66;
+  --sell:#ff3355;--sell2:#cc2244;
+  --hold:#ffaa00;
+  --text:#c8e0f0;--text2:#7a9bb5;
+  --glow:0 0 20px rgba(0,212,255,0.3);
+  --glow-buy:0 0 20px rgba(0,255,136,0.4);
+  --glow-sell:0 0 20px rgba(255,51,85,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.03)1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.03)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:12px}
+.header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:linear-gradient(135deg,var(--panel),var(--panel2));border:1px solid var(--border);border-bottom:2px solid var(--accent);margin-bottom:12px;box-shadow:var(--glow)}
+.logo{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;color:var(--accent);letter-spacing:2px;text-shadow:0 0 15px rgba(0,212,255,.7)}
+.logo span{color:var(--buy)}
+.logo-sub{font-size:9px;color:var(--buy);font-family:'Share Tech Mono',monospace;margin-top:2px}
+.live-wrap{display:flex;align-items:center;gap:12px}
+.live-ind{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--buy);font-family:'Share Tech Mono',monospace}
+.live-dot{width:6px;height:6px;background:var(--buy);border-radius:50%;box-shadow:0 0 8px var(--buy);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.sys-time{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent)}
+.search-row{display:flex;gap:8px;margin-bottom:10px}
+.search-wrap{flex:1;position:relative}
+.search-wrap::before{content:'▶';position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:10px;pointer-events:none}
+input[type=text]{width:100%;padding:10px 12px 10px 30px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;outline:none;transition:all .3s}
+input[type=text]:focus{background:var(--panel2);box-shadow:var(--glow)}
+input::placeholder{color:var(--text2)}
+.btn{padding:10px 14px;font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:1px;border:none;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-load{background:linear-gradient(135deg,var(--accent2),var(--accent));color:var(--bg)}
+.btn-ai{background:linear-gradient(135deg,#1a4060,#2a5a80);color:var(--accent);border:1px solid var(--accent)}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.chip{padding:4px 10px;background:var(--panel);border:1px solid var(--border);color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;transition:all .2s}
+.chip:active,.chip.on{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.06)}
+.grid{display:grid;grid-template-columns:1fr 310px;gap:12px}
+.left,.right{display:flex;flex-direction:column;gap:12px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.panel{background:linear-gradient(135deg,var(--panel),var(--bg3));border:1px solid var(--border);padding:14px;position:relative;overflow:hidden}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.ptitle{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--accent);margin-bottom:10px}
+.ptitle::before{content:'// ';opacity:.5}
+.price-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.sym{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--accent)}
+.cur-p{font-family:'Share Tech Mono',monospace;font-size:24px;font-weight:700;color:#fff}
+.chg{font-family:'Share Tech Mono',monospace;font-size:12px;padding:3px 8px}
+.chg.up{background:rgba(0,255,136,.15);color:var(--buy);border:1px solid var(--buy2)}
+.chg.dn{background:rgba(255,51,85,.15);color:var(--sell);border:1px solid var(--sell2)}
+.src-tag{font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;border:1px solid var(--border);color:var(--text2)}
+.src-tag.ok{border-color:var(--buy2);color:var(--buy)}
+.src-tag.err{border-color:var(--sell2);color:var(--sell)}
+.src-tag.loading{border-color:var(--hold);color:var(--hold)}
+.chart-wrap{position:relative;height:300px;margin-bottom:12px}
+.vol-wrap{position:relative;height:65px}
+.chart-loading{position:absolute;inset:0;background:rgba(5,10,15,.9);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:5;gap:8px}
+.chart-loading.on{display:flex}
+.loading-txt{font-family:'Orbitron',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;animation:flash .7s infinite}
+.loading-sub{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text2);text-align:center;padding:0 20px}
+@keyframes flash{0%,100%{opacity:1}50%{opacity:.2}}
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px}
+@media(max-width:600px){.ind-grid{grid-template-columns:repeat(2,1fr)}}
+.ind-card{background:var(--bg2);border:1px solid var(--border);padding:9px 10px;position:relative}
+.ind-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.ind-card.bull::after{background:var(--buy)}.ind-card.bear::after{background:var(--sell)}.ind-card.neut::after{background:var(--hold)}
+.ind-lbl{font-size:8px;letter-spacing:1px;color:var(--text2);font-family:'Orbitron',monospace;margin-bottom:3px}
+.ind-val{font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:700}
+.ind-sig{font-size:8px;margin-top:2px}
+.bull{color:var(--buy)}.bear{color:var(--sell)}.neut{color:var(--hold)}
+.sig-box{display:flex;align-items:center;gap:14px;padding:14px;margin-bottom:12px;border:1px solid var(--border)}
+.sig-box.BUY{background:rgba(0,255,136,.05);border-color:var(--buy2);box-shadow:var(--glow-buy)}
+.sig-box.SELL{background:rgba(255,51,85,.05);border-color:var(--sell2);box-shadow:var(--glow-sell)}
+.sig-box.HOLD{background:rgba(255,170,0,.05);border-color:#885500}
+.sig-badge{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;letter-spacing:2px;min-width:90px;text-align:center;padding:9px;border:2px solid currentColor}
+.sig-badge.BUY{color:var(--buy)}.sig-badge.SELL{color:var(--sell)}.sig-badge.HOLD{color:var(--hold)}
+.sig-info{flex:1}
+.sig-lbl{font-size:10px;color:var(--text2);letter-spacing:1px;margin-bottom:3px}
+.sig-txt{font-size:12px;color:var(--text);line-height:1.5}
+.str-bar{margin-top:7px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.str-fill{height:100%;border-radius:2px;transition:width .8s ease}
+.str-pct{font-family:'Share Tech Mono',monospace;font-size:18px;min-width:50px;text-align:right}
+.ai-box{background:var(--bg2);border:1px solid var(--border);padding:12px;font-size:11px;line-height:1.8;color:var(--text);min-height:70px}
+.thinking{display:flex;align-items:center;gap:8px;color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:10px}
+.dots span{display:inline-block;width:4px;height:4px;background:var(--accent);border-radius:50%;animation:dp 1.2s infinite;margin-right:3px}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,60%,100%{opacity:.2;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(26,58,92,.4);font-size:11px}
+.stat-row:last-child{border-bottom:none}
+.stat-lbl{color:var(--text2)}.stat-val{font-family:'Share Tech Mono',monospace;color:var(--text)}
+.hist-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(26,58,92,.3);font-size:10px}
+.hbadge{font-family:'Orbitron',monospace;font-size:8px;padding:2px 7px}
+.hbadge.BUY{background:rgba(0,255,136,.15);color:var(--buy)}.hbadge.SELL{background:rgba(255,51,85,.15);color:var(--sell)}.hbadge.HOLD{background:rgba(255,170,0,.15);color:var(--hold)}
+.htime{color:var(--text2);font-family:'Share Tech Mono',monospace;flex:1}
+.hprice{font-family:'Share Tech Mono',monospace;color:var(--text)}
+.prog-bar{display:none;align-items:center;gap:8px;padding:7px 12px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);margin-bottom:10px;font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--accent)}
+.prog-bar.on{display:flex}
+.status{display:flex;justify-content:space-between;padding:5px 12px;background:var(--bg2);border-top:1px solid var(--border);font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--text2);margin-top:12px;flex-wrap:wrap;gap:4px}
+select{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px 7px;font-family:'Share Tech Mono',monospace;font-size:10px;outline:none}
 </style>
 </head>
 <body>
-<div class="container">
+<div class="wrap">
+<div class="header">
+  <div>
+    <div class="logo">QUANTUM<span>TRADE</span> // AI분석</div>
+    <div class="logo-sub">✓ 캔들스틱 | 실시간 시세 | v6.0</div>
+  </div>
+  <div class="live-wrap">
+    <div class="live-ind"><div class="live-dot"></div>LIVE</div>
+    <div class="sys-time" id="sysTime">--:--:--</div>
+  </div>
+</div>
 
-  <!-- Header -->
-  <div class="header">
-    <div class="logo">QUANTUM<span>TRADE</span> // AI분석시스템</div>
-    <div style="display:flex; align-items:center; gap:16px;">
-      <div class="live-indicator"><div class="live-dot"></div>LIVE MONITORING</div>
-      <div class="system-time" id="systemTime">--:--:--</div>
+<div class="search-row">
+  <div class="search-wrap">
+    <input type="text" id="symInput" placeholder="종목코드 (TSLA, AAPL, NVDA ...)" value="TSLA">
+  </div>
+  <button class="btn btn-load" onclick="loadStock()">▶ 불러오기</button>
+  <button class="btn btn-ai" onclick="runAI()">🤖 AI분석</button>
+</div>
+
+<div class="chips">
+  <span class="chip on" onclick="pick(this,'TSLA')">TSLA</span>
+  <span class="chip" onclick="pick(this,'AAPL')">AAPL</span>
+  <span class="chip" onclick="pick(this,'NVDA')">NVDA</span>
+  <span class="chip" onclick="pick(this,'MSFT')">MSFT</span>
+  <span class="chip" onclick="pick(this,'AMZN')">AMZN</span>
+  <span class="chip" onclick="pick(this,'META')">META</span>
+  <span class="chip" onclick="pick(this,'GOOGL')">GOOGL</span>
+  <span class="chip" onclick="pick(this,'NFLX')">NFLX</span>
+  <span class="chip" onclick="pick(this,'005930.KS')">삼성전자</span>
+  <span class="chip" onclick="pick(this,'000660.KS')">SK하이닉스</span>
+  <span class="chip" onclick="pick(this,'035420.KS')">NAVER</span>
+</div>
+
+<div class="prog-bar" id="progBar">
+  <div class="dots"><span></span><span></span><span></span></div>
+  <span id="progTxt">분석 중...</span>
+</div>
+
+<div class="grid">
+  <div class="left">
+    <div class="panel" style="position:relative">
+      <div class="chart-loading" id="chartLoad">
+        <div class="loading-txt" id="loadTxt">데이터 로딩 중...</div>
+        <div class="loading-sub" id="loadSub">서버 연결 중...</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div class="ptitle" style="margin-bottom:0">CANDLESTICK // 캔들스틱</div>
+        <div class="price-bar" style="margin-bottom:0">
+          <span class="sym" id="symLbl">TSLA</span>
+          <span class="cur-p" id="curPrice">--</span>
+          <span class="chg" id="chgBadge">--</span>
+          <span class="src-tag loading" id="srcTag">대기중</span>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+      <div class="ptitle" style="margin-bottom:6px">VOLUME</div>
+      <div class="vol-wrap"><canvas id="volChart"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">TECHNICAL INDICATORS</div>
+      <div class="ind-grid" id="indGrid">
+        <div class="ind-card neut"><div class="ind-lbl">RSI (14)</div><div class="ind-val neut" id="v-rsi">--</div><div class="ind-sig neut" id="s-rsi">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">MACD</div><div class="ind-val neut" id="v-macd">--</div><div class="ind-sig neut" id="s-macd">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">볼린저밴드</div><div class="ind-val neut" id="v-bb">--</div><div class="ind-sig neut" id="s-bb">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">MA 20/50</div><div class="ind-val neut" id="v-ma">--</div><div class="ind-sig neut" id="s-ma">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">스토캐스틱</div><div class="ind-val neut" id="v-st">--</div><div class="ind-sig neut" id="s-st">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">ATR 변동성</div><div class="ind-val neut" id="v-atr">--</div><div class="ind-sig neut" id="s-atr">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">OBV</div><div class="ind-val neut" id="v-obv">--</div><div class="ind-sig neut" id="s-obv">대기중</div></div>
+        <div class="ind-card neut"><div class="ind-lbl">종합신호</div><div class="ind-val neut" id="v-tot">--</div><div class="ind-sig neut" id="s-tot">대기중</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">TRADING SIGNAL // 매매 타이밍</div>
+      <div class="sig-box HOLD" id="sigBox">
+        <div class="sig-badge HOLD" id="sigBadge">HOLD</div>
+        <div class="sig-info">
+          <div class="sig-lbl">현재 신호</div>
+          <div class="sig-txt" id="sigTxt">종목을 불러오고 AI 분석을 실행하세요.</div>
+          <div class="str-bar"><div class="str-fill" id="strFill" style="width:50%;background:var(--hold)"></div></div>
+        </div>
+        <div class="str-pct neut" id="strPct">50%</div>
+      </div>
+      <div class="ptitle" style="margin-top:4px">AI ANALYSIS // Claude 분석</div>
+      <div class="ai-box" id="aiBox">
+        <div class="thinking"><span>▶ AI 분석 버튼을 눌러 기술적 분석을 시작하세요</span></div>
+      </div>
     </div>
   </div>
 
-  <!-- Search -->
-  <div class="search-section">
-    <div class="search-wrapper" style="flex:1">
-      <input type="text" id="symbolInput" placeholder="종목 코드 입력 (예: AAPL, TSLA, 005930.KS)" value="AAPL">
+  <div class="right">
+    <div class="panel">
+      <div class="ptitle">KEY STATS</div>
+      <div class="stat-row"><span class="stat-lbl">현재가</span><span class="stat-val" id="st-cur" style="color:#fff;font-size:13px">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">전일대비</span><span class="stat-val" id="st-chg">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">52주 최고</span><span class="stat-val" id="st-h52">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">52주 최저</span><span class="stat-val" id="st-l52">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">시가</span><span class="stat-val" id="st-open">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">전일종가</span><span class="stat-val" id="st-pc">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">일중 고가</span><span class="stat-val" id="st-dh">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">일중 저가</span><span class="stat-val" id="st-dl">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">거래량</span><span class="stat-val" id="st-vol">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">목표가(AI)</span><span class="stat-val" id="st-tgt" style="color:var(--buy)">--</span></div>
+      <div class="stat-row"><span class="stat-lbl">손절가(AI)</span><span class="stat-val" id="st-stp" style="color:var(--sell)">--</span></div>
     </div>
-    <button class="btn btn-primary" onclick="loadStock()">▶ 불러오기</button>
-    <button class="btn btn-analyze" onclick="runAIAnalysis()">🤖 AI분석</button>
-  </div>
-
-  <!-- Quick symbols -->
-  <div class="quick-symbols">
-    <span class="symbol-chip active" onclick="selectSymbol(this,'AAPL')">AAPL</span>
-    <span class="symbol-chip" onclick="selectSymbol(this,'TSLA')">TSLA</span>
-    <span class="symbol-chip" onclick="selectSymbol(this,'NVDA')">NVDA</span>
-    <span class="symbol-chip" onclick="selectSymbol(this,'MSFT')">MSFT</span>
-    <span class="symbol-chip" onclick="selectSymbol(this,'AMZN')">AMZN</span>
-    <span class="symbol-chip" onclick="selectSymbol(this,'META')">META</span>
-    <span class="symbol-chip" onclick="selectSymbol(this,'GOOGL')">GOOGL</span>
-    <span class="symbol-chip" onclick="selectSymbol(this,'BTC-USD')">BTC</span>
-    <span class="symbol-chip" onclick="selectSymbol(this,'005930.KS')">삼성전자</span>
-    <span class="symbol-chip" onclick="selectSymbol(this,'000660.KS')">SK하이닉스</span>
-    <span class="symbol-chip" onclick="selectSymbol(this,'035420.KS')">NAVER</span>
-  </div>
-
-  <div class="analysis-progress" id="analysisProgress">
-    <div class="dot-pulse"><span></span><span></span><span></span></div>
-    <span id="progressText">AI 기술적 분석 중...</span>
-  </div>
-
-  <div class="main-grid">
-    <!-- Left column -->
-    <div class="left-col">
-
-      <!-- Price chart panel -->
-      <div class="panel" style="position:relative;">
-        <div class="loading-overlay" id="chartLoading"><div class="loader">LOADING DATA...</div></div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div class="panel-title">PRICE CHART // 캔들스틱</div>
-          <div class="stock-info-bar" style="margin-bottom:0;">
-            <span class="stock-name" id="stockSymbol">AAPL</span>
-            <span class="stock-price" id="stockPrice">$0.00</span>
-            <span class="price-change" id="priceChange">+0.00%</span>
-          </div>
-        </div>
-        <div class="chart-container">
-          <canvas id="priceChart"></canvas>
-        </div>
-        <div class="panel-title" style="margin-bottom:8px;">VOLUME</div>
-        <div class="volume-container">
-          <canvas id="volumeChart"></canvas>
-        </div>
-      </div>
-
-      <!-- Indicators -->
-      <div class="panel">
-        <div class="panel-title">TECHNICAL INDICATORS // 기술적 지표</div>
-        <div class="indicators-grid" id="indicatorsGrid">
-          <div class="indicator-card neutral">
-            <div class="ind-label">RSI (14)</div>
-            <div class="ind-value neutral" id="rsiVal">--</div>
-            <div class="ind-signal neutral" id="rsiSig">대기중</div>
-          </div>
-          <div class="indicator-card neutral">
-            <div class="ind-label">MACD</div>
-            <div class="ind-value neutral" id="macdVal">--</div>
-            <div class="ind-signal neutral" id="macdSig">대기중</div>
-          </div>
-          <div class="indicator-card neutral">
-            <div class="ind-label">볼린저밴드</div>
-            <div class="ind-value neutral" id="bbVal">--</div>
-            <div class="ind-signal neutral" id="bbSig">대기중</div>
-          </div>
-          <div class="indicator-card neutral">
-            <div class="ind-label">이동평균 (20/50)</div>
-            <div class="ind-value neutral" id="maVal">--</div>
-            <div class="ind-signal neutral" id="maSig">대기중</div>
-          </div>
-          <div class="indicator-card neutral">
-            <div class="ind-label">스토캐스틱</div>
-            <div class="ind-value neutral" id="stochVal">--</div>
-            <div class="ind-signal neutral" id="stochSig">대기중</div>
-          </div>
-          <div class="indicator-card neutral">
-            <div class="ind-label">ATR (변동성)</div>
-            <div class="ind-value neutral" id="atrVal">--</div>
-            <div class="ind-signal neutral" id="atrSig">대기중</div>
-          </div>
-          <div class="indicator-card neutral">
-            <div class="ind-label">OBV (거래량)</div>
-            <div class="ind-value neutral" id="obvVal">--</div>
-            <div class="ind-signal neutral" id="obvSig">대기중</div>
-          </div>
-          <div class="indicator-card neutral">
-            <div class="ind-label">종합 신호</div>
-            <div class="ind-value neutral" id="overallVal">--</div>
-            <div class="ind-signal neutral" id="overallSig">대기중</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Signal -->
-      <div class="panel">
-        <div class="panel-title">TRADING SIGNAL // 매매 타이밍</div>
-        <div class="signal-display HOLD" id="signalDisplay">
-          <div class="signal-badge HOLD" id="signalBadge">HOLD</div>
-          <div class="signal-details">
-            <div class="signal-title">현재 신호</div>
-            <div class="signal-reason" id="signalReason">종목을 불러오고 AI 분석을 실행하세요.</div>
-            <div class="strength-bar">
-              <div class="strength-fill" id="strengthFill" style="width:50%; background:var(--hold);"></div>
-            </div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:10px; color:var(--text2); margin-bottom:4px;">신호강도</div>
-            <div style="font-family:'Share Tech Mono'; font-size:20px;" id="strengthPct">50%</div>
-          </div>
-        </div>
-
-        <!-- AI Analysis text -->
-        <div class="panel-title" style="margin-top:6px;">AI ANALYSIS // 분석 결과</div>
-        <div class="ai-analysis" id="aiAnalysisText">
-          <div class="thinking">
-            <span>▶ AI 분석 버튼을 눌러 기술적 분석을 시작하세요</span>
-          </div>
-        </div>
-      </div>
-
+    <div class="panel">
+      <div class="ptitle">SUPPORT / RESISTANCE</div>
+      <div style="font-size:8px;color:var(--sell);letter-spacing:1px;margin-bottom:5px">▲ 저항선</div>
+      <div id="resLvl" style="display:flex;flex-direction:column;gap:3px"></div>
+      <div style="padding:7px;background:rgba(0,212,255,.05);border:1px solid var(--border);font-family:'Share Tech Mono';font-size:12px;text-align:center;margin:7px 0">현재가: <span id="curLvl" style="color:var(--accent)">--</span></div>
+      <div style="font-size:8px;color:var(--buy);letter-spacing:1px;margin-bottom:5px">▼ 지지선</div>
+      <div id="supLvl" style="display:flex;flex-direction:column;gap:3px"></div>
     </div>
-
-    <!-- Right column -->
-    <div class="right-col">
-
-      <!-- Key stats -->
-      <div class="panel">
-        <div class="panel-title">KEY STATS // 주요 지표</div>
-        <div id="keyStats">
-          <div class="mini-stat"><span class="mini-stat-label">52주 최고</span><span class="mini-stat-value" id="high52">--</span></div>
-          <div class="mini-stat"><span class="mini-stat-label">52주 최저</span><span class="mini-stat-value" id="low52">--</span></div>
-          <div class="mini-stat"><span class="mini-stat-label">시가</span><span class="mini-stat-value" id="openPrice">--</span></div>
-          <div class="mini-stat"><span class="mini-stat-label">전일종가</span><span class="mini-stat-value" id="prevClose">--</span></div>
-          <div class="mini-stat"><span class="mini-stat-label">일중 고가</span><span class="mini-stat-value" id="dayHigh">--</span></div>
-          <div class="mini-stat"><span class="mini-stat-label">일중 저가</span><span class="mini-stat-value" id="dayLow">--</span></div>
-          <div class="mini-stat"><span class="mini-stat-label">거래량</span><span class="mini-stat-value" id="volume">--</span></div>
-          <div class="mini-stat"><span class="mini-stat-label">목표가 (AI)</span><span class="mini-stat-value" id="targetPrice" style="color:var(--buy)">--</span></div>
-          <div class="mini-stat"><span class="mini-stat-label">손절가 (AI)</span><span class="mini-stat-value" id="stopLoss" style="color:var(--sell)">--</span></div>
+    <div class="panel">
+      <div class="ptitle">SIGNAL LOG</div>
+      <div id="sigHist" style="max-height:180px;overflow-y:auto"><div style="color:var(--text2);font-size:10px;font-family:'Share Tech Mono'">신호 없음</div></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">AUTO REFRESH</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div class="stat-row" style="padding:5px 0">
+          <span class="stat-lbl">갱신 주기</span>
+          <select id="refInt"><option value="0">수동</option><option value="60" selected>1분</option><option value="300">5분</option></select>
         </div>
+        <button class="btn btn-load" style="width:100%;padding:9px" onclick="toggleAuto()" id="autoBtn">▶ 자동분석 시작</button>
+        <div style="font-size:9px;color:var(--text2);font-family:'Share Tech Mono';text-align:center" id="autoTxt">--</div>
       </div>
-
-      <!-- Price levels -->
-      <div class="panel">
-        <div class="panel-title">SUPPORT / RESISTANCE // 지지저항</div>
-        <div id="supportResistance">
-          <div style="margin-bottom:10px;">
-            <div style="font-size:9px; color:var(--sell); letter-spacing:1px; margin-bottom:6px;">▲ 저항선</div>
-            <div id="resistanceLevels" style="display:flex; flex-direction:column; gap:4px;"></div>
-          </div>
-          <div style="padding:8px; background:rgba(0,212,255,0.05); border:1px solid var(--border); font-family:'Share Tech Mono'; font-size:13px; text-align:center; margin:8px 0;">
-            현재가: <span id="currentPriceLevel" style="color:var(--accent)">--</span>
-          </div>
-          <div>
-            <div style="font-size:9px; color:var(--buy); letter-spacing:1px; margin-bottom:6px;">▼ 지지선</div>
-            <div id="supportLevels" style="display:flex; flex-direction:column; gap:4px;"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Signal history -->
-      <div class="panel">
-        <div class="panel-title">SIGNAL LOG // 신호 기록</div>
-        <div id="signalHistory" style="max-height:200px; overflow-y:auto;">
-          <div style="color:var(--text2); font-size:11px; font-family:'Share Tech Mono';">신호 기록 없음</div>
-        </div>
-      </div>
-
-      <!-- Auto refresh -->
-      <div class="panel">
-        <div class="panel-title">AUTO REFRESH // 자동 갱신</div>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <div class="mini-stat">
-            <span class="mini-stat-label">갱신 주기</span>
-            <select id="refreshInterval" style="background:var(--panel2); border:1px solid var(--border); color:var(--text); padding:4px 8px; font-family:'Share Tech Mono'; font-size:11px;">
-              <option value="0">수동</option>
-              <option value="30">30초</option>
-              <option value="60" selected>1분</option>
-              <option value="300">5분</option>
-            </select>
-          </div>
-          <button class="btn btn-primary" style="width:100%; clip-path:none;" onclick="toggleAutoRefresh()" id="autoRefreshBtn">▶ 자동분석 시작</button>
-          <div style="font-size:10px; color:var(--text2); font-family:'Share Tech Mono'; text-align:center;" id="nextRefreshTime">--</div>
-        </div>
-      </div>
-
     </div>
   </div>
+</div>
 
-  <div class="status-bar">
-    <span id="statusMsg">▶ 종목을 선택하고 불러오기를 클릭하세요</span>
-    <span>QUANTUMTRADE AI v2.1 // Finnhub 실시간 연동 // Powered by Claude</span>
-  </div>
-
+<div class="status">
+  <span id="statusMsg">▶ 종목을 선택하고 불러오기를 클릭하세요</span>
+  <span>QUANTUMTRADE AI v6.0 // 2026.03.17</span>
+</div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════
-let currentSymbol = 'AAPL';
-let priceChart = null;
-let volumeChart = null;
-let stockData = null;
-let signalHistory = [];
-let autoRefreshTimer = null;
-let autoRefreshActive = false;
-let nextRefreshCountdown = null;
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+// CORS 프록시 목록 (순차 시도)
+const PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://proxy.cors.sh/${url}`,
+  url => `https://thingproxy.freeboard.io/fetch/${url}`,
+];
 
-// ═══════════════════════════════════════════════════
-// TIME
-// ═══════════════════════════════════════════════════
-function updateTime() {
-  const now = new Date();
-  document.getElementById('systemTime').textContent =
-    now.toLocaleTimeString('ko-KR', {hour12:false}) + ' KST';
+let SYM='TSLA', pChart=null, vChart=null, stockData=null;
+let sigHistory=[], autoTimer=null, autoActive=false, cdTimer=null;
+
+setInterval(()=>{
+  document.getElementById('sysTime').textContent=new Date().toLocaleTimeString('ko-KR',{hour12:false})+' KST';
+},1000);
+
+function pick(el,sym){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('symInput').value=sym;
+  SYM=sym; loadStock();
 }
-setInterval(updateTime, 1000);
-updateTime();
-
-// ═══════════════════════════════════════════════════
-// SYMBOL SELECT
-// ═══════════════════════════════════════════════════
-function selectSymbol(el, sym) {
-  document.querySelectorAll('.symbol-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('symbolInput').value = sym;
-  currentSymbol = sym;
-  loadStock();
+function setTag(txt,state){
+  const el=document.getElementById('srcTag');
+  el.textContent=txt; el.className='src-tag '+state;
 }
+function setSub(txt){ document.getElementById('loadSub').textContent=txt; }
 
-// ═══════════════════════════════════════════════════
-// FINNHUB API (실시간 데이터)
-// ═══════════════════════════════════════════════════
-const FINNHUB_KEY = 'd6sdh3hr01qj447b90agd6sdh3hr01qj447b90b0';
-
-// 한국 종목 심볼 변환 (KIS → Finnhub 형식)
-function toFinnhubSymbol(sym) {
-  const krMap = {
-    '005930.KS': 'KRX:005930',  // 삼성전자
-    '000660.KS': 'KRX:000660',  // SK하이닉스
-    '035420.KS': 'KRX:035420',  // NAVER
-    '035720.KS': 'KRX:035720',  // 카카오
-    '051910.KS': 'KRX:051910',  // LG화학
-  };
-  return krMap[sym] || sym;
-}
-
-// 실시간 현재가 조회
-async function fetchFinnhubQuote(symbol) {
-  const fsym = toFinnhubSymbol(symbol);
-  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(fsym)}&token=${FINNHUB_KEY}`;
-  const resp = await fetch(url);
-  if(!resp.ok) throw new Error('Finnhub quote 실패');
-  return await resp.json();
-  // 반환: { c: 현재가, d: 변동, dp: 변동%, h: 고가, l: 저가, o: 시가, pc: 전일종가 }
-}
-
-// 캔들(일봉) 데이터 조회 - 최근 3개월
-async function fetchFinnhubCandles(symbol) {
-  const fsym = toFinnhubSymbol(symbol);
-  const to = Math.floor(Date.now() / 1000);
-  const from = to - 60 * 60 * 24 * 120; // 120일치
-  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(fsym)}&resolution=D&from=${from}&to=${to}&token=${FINNHUB_KEY}`;
-  const resp = await fetch(url);
-  if(!resp.ok) throw new Error('Finnhub candle 실패');
-  const data = await resp.json();
-  if(data.s !== 'ok') throw new Error('Finnhub 데이터 없음: ' + data.s);
-  return data;
-  // 반환: { t:[], o:[], h:[], l:[], c:[], v:[], s:'ok' }
-}
-
-// 52주 최고/최저 (회사 기본정보)
-async function fetchFinnhubProfile(symbol) {
+// ══════════════════════════════════════════════
+// FETCH WITH PROXY FALLBACK
+// ══════════════════════════════════════════════
+async function fetchWithProxy(targetUrl) {
+  // 직접 시도
   try {
-    const fsym = toFinnhubSymbol(symbol);
-    const url = `https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(fsym)}&metric=all&token=${FINNHUB_KEY}`;
-    const resp = await fetch(url);
-    const data = await resp.json();
-    return data.metric || {};
-  } catch(e) { return {}; }
+    const r = await fetch(targetUrl, {mode:'cors', cache:'no-store'});
+    if(r.ok){ const t=await r.text(); if(t.length>50) return t; }
+  } catch(e){}
+
+  // 프록시 순차 시도
+  for(const mkProxy of PROXIES){
+    try{
+      setSub(`프록시 연결 시도 중...`);
+      const r = await fetch(mkProxy(targetUrl), {cache:'no-store'});
+      if(r.ok){
+        const t = await r.text();
+        if(t && t.length > 50) return t;
+      }
+    }catch(e){}
+  }
+  throw new Error('모든 연결 방법 실패');
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// STOOQ CSV PARSER
+// ══════════════════════════════════════════════
+function toStooqSym(sym){
+  const map={'005930.KS':'005930.KS','000660.KS':'000660.KS','035420.KS':'035420.KS'};
+  if(map[sym]) return map[sym];
+  return sym.toLowerCase()+'.us';
+}
+
+function parseCSV(csv){
+  const lines = csv.trim().split('\n');
+  if(lines.length < 3) throw new Error('데이터 없음');
+  // Date,Open,High,Low,Close,Volume
+  const candles = [];
+  for(let i=1;i<lines.length;i++){
+    const p = lines[i].split(',');
+    if(p.length < 6) continue;
+    const [date,o,h,l,c,v] = p;
+    const ts = new Date(date.trim()).getTime();
+    const close = parseFloat(c);
+    if(isNaN(ts)||isNaN(close)||close<=0) continue;
+    candles.push({
+      x: ts,
+      o: parseFloat(o), h: parseFloat(h), l: parseFloat(l),
+      c: close, v: parseInt(v)||0
+    });
+  }
+  if(candles.length < 10) throw new Error('유효한 데이터 부족');
+  return candles.sort((a,b)=>a.x-b.x);
+}
+
+// ══════════════════════════════════════════════
 // LOAD STOCK
-// ═══════════════════════════════════════════════════
-async function loadStock() {
-  const sym = document.getElementById('symbolInput').value.trim().toUpperCase() || 'AAPL';
-  currentSymbol = sym;
+// ══════════════════════════════════════════════
+async function loadStock(){
+  const sym = document.getElementById('symInput').value.trim().toUpperCase()||'TSLA';
+  SYM = sym;
+  const isKR = sym.endsWith('.KS');
 
-  document.getElementById('chartLoading').classList.add('show');
-  document.getElementById('statusMsg').textContent = `▶ ${sym} Finnhub 실시간 데이터 로딩 중...`;
+  document.getElementById('chartLoad').classList.add('on');
+  document.getElementById('loadTxt').textContent='데이터 로딩 중...';
+  setSub(`${sym} 연결 중...`);
+  setTag('연결중...','loading');
+  document.getElementById('statusMsg').textContent=`▶ ${sym} 데이터 로딩 중...`;
 
-  try {
-    // 병렬로 현재가 + 캔들 + 지표 데이터 요청
-    const [quoteRaw, candleRaw, metric] = await Promise.all([
-      fetchFinnhubQuote(sym),
-      fetchFinnhubCandles(sym),
-      fetchFinnhubProfile(sym)
-    ]);
+  try{
+    const stooqSym = toStooqSym(sym);
+    const csvUrl = `https://stooq.com/q/d/l/?s=${encodeURIComponent(stooqSym)}&i=d`;
 
-    // 캔들 데이터 가공
-    const candles = candleRaw.t.map((t, i) => ({
-      time: new Date(t * 1000),
-      open:   candleRaw.o[i],
-      high:   candleRaw.h[i],
-      low:    candleRaw.l[i],
-      close:  candleRaw.c[i],
-      volume: candleRaw.v[i]
-    })).filter(c => c.close != null && c.close > 0);
+    setSub(`Stooq → ${stooqSym}`);
+    const csvText = await fetchWithProxy(csvUrl);
 
-    // 현재가는 quote에서 (캔들보다 더 최신)
-    const currentPrice = quoteRaw.c || candles[candles.length-1].close;
-    const prevClose    = quoteRaw.pc || candles[candles.length-2]?.close || currentPrice;
-    const changeAmt    = quoteRaw.d  || (currentPrice - prevClose);
-    const changePct    = quoteRaw.dp || ((changeAmt / prevClose) * 100);
-    const isKR         = sym.endsWith('.KS');
+    // CSV 파싱
+    if(csvText.includes('No data') || csvText.includes('Exceeded')){
+      throw new Error('Stooq: 데이터 없음 또는 한도 초과');
+    }
 
-    const quote = {
-      symbol: sym,
-      regularMarketPrice:         currentPrice,
-      regularMarketChange:        changeAmt,
-      regularMarketChangePercent: changePct,
-      regularMarketOpen:          quoteRaw.o  || candles[candles.length-1].open,
-      regularMarketPreviousClose: prevClose,
-      regularMarketDayHigh:       quoteRaw.h  || candles[candles.length-1].high,
-      regularMarketDayLow:        quoteRaw.l  || candles[candles.length-1].low,
-      regularMarketVolume:        candles[candles.length-1].volume,
-      fiftyTwoWeekHigh: metric['52WeekHigh'] || Math.max(...candles.map(c=>c.high)),
-      fiftyTwoWeekLow:  metric['52WeekLow']  || Math.min(...candles.map(c=>c.low)),
-      currency: isKR ? 'KRW' : 'USD'
+    const candles = parseCSV(csvText);
+    const last = candles[candles.length-1];
+    const prev = candles[candles.length-2];
+    const cur = last.c;
+    const pc = prev?.c || cur;
+
+    const data = {
+      sym, candles, cur, pc,
+      chg: cur-pc,
+      chgPct: ((cur-pc)/pc*100),
+      open: last.o,
+      dHigh: last.h,
+      dLow: last.l,
+      h52: Math.max(...candles.slice(-252).map(c=>c.h)),
+      l52: Math.min(...candles.slice(-252).map(c=>c.l)),
+      vol: last.v,
+      currency: isKR?'KRW':'USD',
+      source: 'Stooq'
     };
 
-    // 마지막 캔들의 종가를 실제 현재가로 교체 (차트 최신 반영)
-    if(candles.length > 0) candles[candles.length-1].close = currentPrice;
-
-    stockData = { candles, quote, symbol: sym };
-
-    updatePriceDisplay(quote, null);
-    updateKeyStats(quote);
-    drawCharts(candles);
-    computeIndicators(candles);
-    computeSupportResistance(candles);
-
-    document.getElementById('statusMsg').textContent =
-      `✓ [Finnhub 실시간] ${sym} | 현재가: ${isKR ? currentPrice.toLocaleString()+'원' : '$'+currentPrice.toFixed(2)} | ${candles.length}일치 로드 완료`;
-
-  } catch(e) {
-    console.error('Finnhub 오류:', e);
-    generateSimulatedData(sym);
-    document.getElementById('statusMsg').textContent =
-      `⚠ Finnhub 연결 실패 (${e.message}) - 시뮬레이션 데이터 사용 중`;
-  } finally {
-    document.getElementById('chartLoading').classList.remove('show');
-  }
-}
-
-// ═══════════════════════════════════════════════════
-// SIMULATED DATA FALLBACK
-// ═══════════════════════════════════════════════════
-function generateSimulatedData(sym) {
-  const basePrices = {
-    'AAPL': 185, 'TSLA': 250, 'NVDA': 875, 'MSFT': 420,
-    'AMZN': 198, 'META': 510, 'GOOGL': 172, 'BTC-USD': 68000,
-    '005930.KS': 78000, '000660.KS': 195000, '035420.KS': 225000
-  };
-  const basePrice = basePrices[sym] || 100;
-
-  const candles = [];
-  let price = basePrice;
-  const now = Date.now();
-
-  for(let i = 89; i >= 0; i--) {
-    const date = new Date(now - i * 86400000);
-    const change = (Math.random() - 0.48) * price * 0.025;
-    const open = price;
-    price = Math.max(price + change, 1);
-    const high = Math.max(open, price) * (1 + Math.random() * 0.015);
-    const low = Math.min(open, price) * (1 - Math.random() * 0.015);
-    const volume = Math.floor(Math.random() * 50000000 + 10000000);
-    candles.push({ time: date, open, high, low, close: price, volume });
-  }
-
-  const currentPrice = price;
-  const prevClose = candles[candles.length - 2].close;
-  const changeAmt = currentPrice - prevClose;
-  const changePct = (changeAmt / prevClose) * 100;
-
-  stockData = {
-    candles,
-    symbol: sym,
-    quote: {
-      symbol: sym,
-      regularMarketPrice: currentPrice,
-      regularMarketChangePercent: changePct,
-      regularMarketChange: changeAmt,
-      regularMarketOpen: candles[candles.length-1].open,
-      regularMarketPreviousClose: prevClose,
-      regularMarketDayHigh: candles[candles.length-1].high,
-      regularMarketDayLow: candles[candles.length-1].low,
-      regularMarketVolume: candles[candles.length-1].volume,
-      fiftyTwoWeekHigh: Math.max(...candles.map(c => c.high)),
-      fiftyTwoWeekLow: Math.min(...candles.map(c => c.low)),
-      currency: sym.endsWith('.KS') ? 'KRW' : 'USD'
-    }
-  };
-
-  updatePriceDisplay(stockData.quote, null);
-  updateKeyStats(stockData.quote);
-  drawCharts(candles);
-  computeIndicators(candles);
-  computeSupportResistance(candles);
-}
-
-// ═══════════════════════════════════════════════════
-// UI UPDATES
-// ═══════════════════════════════════════════════════
-function updatePriceDisplay(quote, meta) {
-  const price = quote.regularMarketPrice || quote.price || 0;
-  const changePct = quote.regularMarketChangePercent || 0;
-  const change = quote.regularMarketChange || 0;
-  const currency = quote.currency || 'USD';
-  const fmt = currency === 'KRW'
-    ? price.toLocaleString('ko-KR') + '원'
-    : '$' + price.toFixed(2);
-
-  document.getElementById('stockSymbol').textContent = currentSymbol;
-  document.getElementById('stockPrice').textContent = fmt;
-  document.getElementById('currentPriceLevel').textContent = fmt;
-
-  const pctEl = document.getElementById('priceChange');
-  const isUp = changePct >= 0;
-  pctEl.textContent = (isUp ? '+' : '') + changePct.toFixed(2) + '%';
-  pctEl.className = 'price-change ' + (isUp ? 'up' : 'down');
-}
-
-function updateKeyStats(quote) {
-  const fmt = (v, cur) => {
-    if (!v) return '--';
-    return cur === 'KRW' ? v.toLocaleString('ko-KR') + '원' : '$' + v.toFixed(2);
-  };
-  const cur = quote.currency || 'USD';
-  const fmtV = (v) => v ? (v / 1000000).toFixed(1) + 'M' : '--';
-
-  document.getElementById('high52').textContent = fmt(quote.fiftyTwoWeekHigh, cur);
-  document.getElementById('low52').textContent = fmt(quote.fiftyTwoWeekLow, cur);
-  document.getElementById('openPrice').textContent = fmt(quote.regularMarketOpen, cur);
-  document.getElementById('prevClose').textContent = fmt(quote.regularMarketPreviousClose, cur);
-  document.getElementById('dayHigh').textContent = fmt(quote.regularMarketDayHigh, cur);
-  document.getElementById('dayLow').textContent = fmt(quote.regularMarketDayLow, cur);
-  document.getElementById('volume').textContent = fmtV(quote.regularMarketVolume);
-}
-
-// ═══════════════════════════════════════════════════
-// CHARTS
-// ═══════════════════════════════════════════════════
-function drawCharts(candles) {
-  const labels = candles.map(c => c.time.toLocaleDateString('ko-KR', {month:'2-digit', day:'2-digit'}));
-  const closes = candles.map(c => c.close);
-  const volumes = candles.map(c => c.volume);
-  const colors = candles.map((c, i) => i === 0 ? 'rgba(0,212,255,0.6)' : c.close >= c.open ? 'rgba(0,255,136,0.7)' : 'rgba(255,51,85,0.7)');
-
-  // Compute moving averages
-  const ma20 = computeMA(closes, 20);
-  const ma50 = computeMA(closes, 50);
-
-  // Compute Bollinger Bands
-  const bb = computeBB(closes, 20);
-
-  if(priceChart) priceChart.destroy();
-  if(volumeChart) volumeChart.destroy();
-
-  const ctx = document.getElementById('priceChart').getContext('2d');
-  priceChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: '종가',
-          data: closes,
-          borderColor: '#00d4ff',
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: false,
-          tension: 0.1,
-          order: 1
-        },
-        {
-          label: 'MA20',
-          data: ma20,
-          borderColor: '#ffaa00',
-          borderWidth: 1,
-          pointRadius: 0,
-          borderDash: [],
-          fill: false,
-          tension: 0.1,
-          order: 2
-        },
-        {
-          label: 'MA50',
-          data: ma50,
-          borderColor: '#ff6644',
-          borderWidth: 1,
-          pointRadius: 0,
-          fill: false,
-          tension: 0.1,
-          order: 3
-        },
-        {
-          label: 'BB상단',
-          data: bb.upper,
-          borderColor: 'rgba(255,255,255,0.2)',
-          borderWidth: 1,
-          borderDash: [4,4],
-          pointRadius: 0,
-          fill: false,
-          tension: 0.1,
-          order: 4
-        },
-        {
-          label: 'BB하단',
-          data: bb.lower,
-          borderColor: 'rgba(255,255,255,0.2)',
-          borderWidth: 1,
-          borderDash: [4,4],
-          pointRadius: 0,
-          fill: '+1',
-          backgroundColor: 'rgba(0,212,255,0.03)',
-          tension: 0.1,
-          order: 5
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 600 },
-      interaction: { intersect: false, mode: 'index' },
-      plugins: {
-        legend: {
-          labels: { color: '#7a9bb5', font: { size: 10 }, boxWidth: 20 }
-        },
-        tooltip: {
-          backgroundColor: '#0d1c2e',
-          borderColor: '#1a3a5c',
-          borderWidth: 1,
-          titleColor: '#00d4ff',
-          bodyColor: '#c8e0f0',
-          callbacks: {
-            label: (ctx) => {
-              if(!ctx.parsed.y) return '';
-              return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: { color: '#7a9bb5', font:{size:9}, maxTicksLimit:10 },
-          grid: { color: 'rgba(26,58,92,0.4)' }
-        },
-        y: {
-          ticks: { color: '#7a9bb5', font:{size:10} },
-          grid: { color: 'rgba(26,58,92,0.4)' },
-          position: 'right'
-        }
-      }
-    }
-  });
-
-  // Volume chart
-  const vCtx = document.getElementById('volumeChart').getContext('2d');
-  volumeChart = new Chart(vCtx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: '거래량',
-        data: volumes,
-        backgroundColor: colors,
-        borderWidth: 0
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 400 },
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { display: false }, grid: { display: false } },
-        y: { ticks: { color:'#7a9bb5', font:{size:9}, maxTicksLimit:3 }, grid: { color:'rgba(26,58,92,0.3)' }, position:'right' }
-      }
-    }
-  });
-}
-
-// ═══════════════════════════════════════════════════
-// TECHNICAL INDICATORS COMPUTATION
-// ═══════════════════════════════════════════════════
-function computeMA(data, period) {
-  return data.map((_, i) => {
-    if(i < period - 1) return null;
-    const slice = data.slice(i - period + 1, i + 1);
-    return slice.reduce((a,b) => a+b, 0) / period;
-  });
-}
-
-function computeRSI(closes, period = 14) {
-  const changes = closes.slice(1).map((c, i) => c - closes[i]);
-  let gains = 0, losses = 0;
-  for(let i = 0; i < period; i++) {
-    if(changes[i] > 0) gains += changes[i];
-    else losses -= changes[i];
-  }
-  let avgGain = gains / period;
-  let avgLoss = losses / period;
-  for(let i = period; i < changes.length; i++) {
-    const g = changes[i] > 0 ? changes[i] : 0;
-    const l = changes[i] < 0 ? -changes[i] : 0;
-    avgGain = (avgGain * (period-1) + g) / period;
-    avgLoss = (avgLoss * (period-1) + l) / period;
-  }
-  if(avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return 100 - (100 / (1 + rs));
-}
-
-function computeMACDVal(closes) {
-  const ema12 = computeEMA(closes, 12);
-  const ema26 = computeEMA(closes, 26);
-  const macdLine = ema12 - ema26;
-  return { macd: macdLine, signal: macdLine * 0.9, hist: macdLine * 0.1 };
-}
-
-function computeEMA(data, period) {
-  const k = 2 / (period + 1);
-  let ema = data.slice(0, period).reduce((a,b) => a+b, 0) / period;
-  for(let i = period; i < data.length; i++) {
-    ema = data[i] * k + ema * (1 - k);
-  }
-  return ema;
-}
-
-function computeBB(data, period = 20, mult = 2) {
-  const upper = [], lower = [], mid = [];
-  for(let i = 0; i < data.length; i++) {
-    if(i < period - 1) { upper.push(null); lower.push(null); mid.push(null); continue; }
-    const slice = data.slice(i-period+1, i+1);
-    const mean = slice.reduce((a,b)=>a+b,0)/period;
-    const std = Math.sqrt(slice.reduce((a,b)=>a+(b-mean)**2,0)/period);
-    upper.push(mean + mult*std);
-    lower.push(mean - mult*std);
-    mid.push(mean);
-  }
-  return { upper, lower, mid };
-}
-
-function computeStoch(candles, period = 14) {
-  const last = candles.slice(-period);
-  const highs = last.map(c => c.high);
-  const lows = last.map(c => c.low);
-  const close = candles[candles.length-1].close;
-  const high = Math.max(...highs);
-  const low = Math.min(...lows);
-  return ((close - low) / (high - low)) * 100;
-}
-
-function computeATR(candles, period = 14) {
-  const trs = candles.slice(1).map((c, i) => {
-    const prev = candles[i];
-    return Math.max(c.high - c.low, Math.abs(c.high - prev.close), Math.abs(c.low - prev.close));
-  });
-  const recent = trs.slice(-period);
-  return recent.reduce((a,b) => a+b, 0) / period;
-}
-
-function computeIndicators(candles) {
-  const closes = candles.map(c => c.close);
-  const currentClose = closes[closes.length - 1];
-
-  // RSI
-  const rsi = computeRSI(closes);
-  const rsiEl = document.getElementById('rsiVal');
-  const rsiSig = document.getElementById('rsiSig');
-  rsiEl.textContent = rsi.toFixed(1);
-  let rsiClass = 'neutral', rsiText = '중립';
-  if(rsi < 30) { rsiClass = 'bullish'; rsiText = '과매도 (매수)'; }
-  else if(rsi > 70) { rsiClass = 'bearish'; rsiText = '과매수 (매도)'; }
-  else if(rsi < 45) { rsiClass = 'bullish'; rsiText = '매수 우위'; }
-  else if(rsi > 55) { rsiClass = 'bearish'; rsiText = '매도 우위'; }
-  rsiEl.className = `ind-value ${rsiClass}`;
-  rsiSig.className = `ind-signal ${rsiClass}`;
-  rsiSig.textContent = rsiText;
-  document.querySelector('#indicatorsGrid .indicator-card:nth-child(1)').className = `indicator-card ${rsiClass}`;
-
-  // MACD
-  const macdData = computeMACDVal(closes);
-  const macdEl = document.getElementById('macdVal');
-  const macdSigEl = document.getElementById('macdSig');
-  macdEl.textContent = macdData.macd.toFixed(3);
-  const macdClass = macdData.hist > 0 ? 'bullish' : 'bearish';
-  const macdText = macdData.hist > 0 ? 'MACD 상향' : 'MACD 하향';
-  macdEl.className = `ind-value ${macdClass}`;
-  macdSigEl.className = `ind-signal ${macdClass}`;
-  macdSigEl.textContent = macdText;
-  document.querySelector('#indicatorsGrid .indicator-card:nth-child(2)').className = `indicator-card ${macdClass}`;
-
-  // Bollinger Bands
-  const bb = computeBB(closes, 20);
-  const bbUpper = bb.upper[bb.upper.length - 1];
-  const bbLower = bb.lower[bb.lower.length - 1];
-  const bbMid = bb.mid[bb.mid.length - 1];
-  const bbEl = document.getElementById('bbVal');
-  const bbSigEl = document.getElementById('bbSig');
-  const bbPct = ((currentClose - bbLower) / (bbUpper - bbLower) * 100).toFixed(0);
-  bbEl.textContent = bbPct + '%';
-  let bbClass = 'neutral', bbText = '밴드 중간';
-  if(currentClose < bbLower * 1.01) { bbClass = 'bullish'; bbText = '하단 근접 (매수)'; }
-  else if(currentClose > bbUpper * 0.99) { bbClass = 'bearish'; bbText = '상단 근접 (매도)'; }
-  bbEl.className = `ind-value ${bbClass}`;
-  bbSigEl.className = `ind-signal ${bbClass}`;
-  bbSigEl.textContent = bbText;
-  document.querySelector('#indicatorsGrid .indicator-card:nth-child(3)').className = `indicator-card ${bbClass}`;
-
-  // Moving Average
-  const ma20 = computeEMA(closes, 20);
-  const ma50 = computeEMA(closes, 50);
-  const maEl = document.getElementById('maVal');
-  const maSigEl = document.getElementById('maSig');
-  const maClass = ma20 > ma50 && currentClose > ma20 ? 'bullish' :
-                  ma20 < ma50 && currentClose < ma20 ? 'bearish' : 'neutral';
-  const maText = ma20 > ma50 ? '골든크로스 (상승)' : ma20 < ma50 ? '데드크로스 (하락)' : 'MA 교차 중';
-  maEl.textContent = ma20.toFixed(2);
-  maEl.className = `ind-value ${maClass}`;
-  maSigEl.className = `ind-signal ${maClass}`;
-  maSigEl.textContent = maText;
-  document.querySelector('#indicatorsGrid .indicator-card:nth-child(4)').className = `indicator-card ${maClass}`;
-
-  // Stochastic
-  const stoch = computeStoch(candles);
-  const stochEl = document.getElementById('stochVal');
-  const stochSigEl = document.getElementById('stochSig');
-  stochEl.textContent = stoch.toFixed(1);
-  let stochClass = 'neutral', stochText = '중립 구간';
-  if(stoch < 20) { stochClass = 'bullish'; stochText = '과매도 신호'; }
-  else if(stoch > 80) { stochClass = 'bearish'; stochText = '과매수 신호'; }
-  stochEl.className = `ind-value ${stochClass}`;
-  stochSigEl.className = `ind-signal ${stochClass}`;
-  stochSigEl.textContent = stochText;
-  document.querySelector('#indicatorsGrid .indicator-card:nth-child(5)').className = `indicator-card ${stochClass}`;
-
-  // ATR
-  const atr = computeATR(candles);
-  const atrEl = document.getElementById('atrVal');
-  const atrSigEl = document.getElementById('atrSig');
-  const atrPct = (atr / currentClose * 100).toFixed(1);
-  atrEl.textContent = atrPct + '%';
-  const atrClass = parseFloat(atrPct) > 3 ? 'bearish' : parseFloat(atrPct) > 2 ? 'neutral' : 'bullish';
-  const atrText = parseFloat(atrPct) > 3 ? '고변동성' : parseFloat(atrPct) > 2 ? '보통 변동성' : '저변동성';
-  atrEl.className = `ind-value ${atrClass}`;
-  atrSigEl.className = `ind-signal ${atrClass}`;
-  atrSigEl.textContent = atrText;
-  document.querySelector('#indicatorsGrid .indicator-card:nth-child(6)').className = `indicator-card ${atrClass}`;
-
-  // OBV (simplified)
-  let obv = 0;
-  candles.forEach((c, i) => {
-    if(i === 0) return;
-    if(c.close > candles[i-1].close) obv += c.volume;
-    else if(c.close < candles[i-1].close) obv -= c.volume;
-  });
-  const obvEl = document.getElementById('obvVal');
-  const obvSigEl = document.getElementById('obvSig');
-  const obvClass = obv > 0 ? 'bullish' : 'bearish';
-  const obvText = obv > 0 ? '거래량 매집' : '거래량 분산';
-  obvEl.textContent = (obv / 1000000).toFixed(1) + 'M';
-  obvEl.className = `ind-value ${obvClass}`;
-  obvSigEl.className = `ind-signal ${obvClass}`;
-  obvSigEl.textContent = obvText;
-  document.querySelector('#indicatorsGrid .indicator-card:nth-child(7)').className = `indicator-card ${obvClass}`;
-
-  // Overall signal
-  const bullSignals = [rsiClass, macdClass, bbClass, macdClass, stochClass, obvClass].filter(s => s === 'bullish').length;
-  const bearSignals = [rsiClass, macdClass, bbClass, macdClass, stochClass, obvClass].filter(s => s === 'bearish').length;
-  const overallEl = document.getElementById('overallVal');
-  const overallSigEl = document.getElementById('overallSig');
-  let overallClass, overallSignal, overallText;
-
-  if(bullSignals >= 4) { overallClass = 'bullish'; overallSignal = 'BUY'; overallText = `매수 신호 ${bullSignals}/6`; }
-  else if(bearSignals >= 4) { overallClass = 'bearish'; overallSignal = 'SELL'; overallText = `매도 신호 ${bearSignals}/6`; }
-  else { overallClass = 'neutral'; overallSignal = 'HOLD'; overallText = `관망 (${bullSignals}매수/${bearSignals}매도)`; }
-
-  overallEl.textContent = overallSignal;
-  overallEl.className = `ind-value ${overallClass}`;
-  overallSigEl.className = `ind-signal ${overallClass}`;
-  overallSigEl.textContent = overallText;
-  document.querySelector('#indicatorsGrid .indicator-card:nth-child(8)').className = `indicator-card ${overallClass}`;
-
-  // Update signal display
-  updateSignalDisplay(overallSignal, bullSignals, bearSignals, currentClose, atr);
-
-  return { rsi, macd: macdData.macd, bbUpper, bbLower, bbMid, ma20, ma50, stoch, atr, obv, currentClose };
-}
-
-function updateSignalDisplay(signal, bullCount, bearCount, price, atr) {
-  const display = document.getElementById('signalDisplay');
-  const badge = document.getElementById('signalBadge');
-  const reason = document.getElementById('signalReason');
-  const fill = document.getElementById('strengthFill');
-  const pct = document.getElementById('strengthPct');
-
-  display.className = `signal-display ${signal}`;
-  badge.className = `signal-badge ${signal}`;
-  badge.textContent = signal;
-
-  const strength = signal === 'BUY' ? (bullCount/6*100) : signal === 'SELL' ? (bearCount/6*100) : 50;
-  fill.style.width = strength + '%';
-  fill.style.background = signal === 'BUY' ? 'var(--buy)' : signal === 'SELL' ? 'var(--sell)' : 'var(--hold)';
-  pct.textContent = Math.round(strength) + '%';
-
-  const reasons = {
-    'BUY': `매수 신호 ${bullCount}개 감지. 현재가 $${price.toFixed(2)} 기준 기술적 지표들이 상승 전환을 시사합니다.`,
-    'SELL': `매도 신호 ${bearCount}개 감지. 과매수 구간 진입 가능성이 높으며 차익실현을 고려할 시점입니다.`,
-    'HOLD': `신호 혼재 (매수 ${bullCount}/매도 ${bearCount}). 추가 확인 후 진입을 권장합니다.`
-  };
-  reason.textContent = reasons[signal];
-
-  // Update targets
-  const targetPriceEl = document.getElementById('targetPrice');
-  const stopLossEl = document.getElementById('stopLoss');
-  const currency = (stockData?.quote?.currency === 'KRW') ? '' : '$';
-  const fmt2 = (v) => currency === '' ? v.toLocaleString('ko-KR') + '원' : '$' + v.toFixed(2);
-
-  if(signal === 'BUY') {
-    targetPriceEl.textContent = fmt2(price * 1.05);
-    stopLossEl.textContent = fmt2(price * 0.97);
-  } else if(signal === 'SELL') {
-    targetPriceEl.textContent = fmt2(price * 0.97);
-    stopLossEl.textContent = fmt2(price * 1.03);
-  } else {
-    targetPriceEl.textContent = fmt2(price * 1.03);
-    stopLossEl.textContent = fmt2(price * 0.98);
-  }
-
-  // Add to history
-  addSignalHistory(signal, price);
-}
-
-function addSignalHistory(signal, price) {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
-  signalHistory.unshift({ signal, price, time: timeStr, symbol: currentSymbol });
-  if(signalHistory.length > 10) signalHistory.pop();
-
-  const container = document.getElementById('signalHistory');
-  container.innerHTML = signalHistory.map(h => `
-    <div class="signal-history-item">
-      <span class="hist-badge ${h.signal}">${h.signal}</span>
-      <span style="color:var(--text2);font-size:10px;">${h.symbol}</span>
-      <span class="hist-time">${h.time}</span>
-      <span class="hist-price">$${typeof h.price === 'number' ? h.price.toFixed(2) : h.price}</span>
-    </div>
-  `).join('');
-}
-
-// ═══════════════════════════════════════════════════
-// SUPPORT / RESISTANCE
-// ═══════════════════════════════════════════════════
-function computeSupportResistance(candles) {
-  const currentClose = candles[candles.length-1].close;
-  const highs = candles.map(c => c.high).sort((a,b) => b-a);
-  const lows = candles.map(c => c.low).sort((a,b) => a-b);
-
-  // Find key levels
-  const resistance = [];
-  const support = [];
-
-  // Use pivot points from recent candles
-  for(let i = 5; i < candles.length - 5; i++) {
-    const isSwingHigh = candles[i].high > candles[i-1].high && candles[i].high > candles[i+1].high &&
-                        candles[i].high > candles[i-2].high && candles[i].high > candles[i+2].high;
-    const isSwingLow = candles[i].low < candles[i-1].low && candles[i].low < candles[i+1].low &&
-                       candles[i].low < candles[i-2].low && candles[i].low < candles[i+2].low;
-
-    if(isSwingHigh && candles[i].high > currentClose && resistance.length < 3) {
-      resistance.push(candles[i].high);
-    }
-    if(isSwingLow && candles[i].low < currentClose && support.length < 3) {
-      support.push(candles[i].low);
-    }
-  }
-
-  const currency = stockData?.quote?.currency === 'KRW';
-  const fmtLevel = (v) => currency ? v.toLocaleString('ko-KR') + '원' : '$' + v.toFixed(2);
-  const distPct = (v) => ((v - currentClose) / currentClose * 100).toFixed(1);
-
-  const resContainer = document.getElementById('resistanceLevels');
-  const supContainer = document.getElementById('supportLevels');
-
-  const levelHtml = (levels, isRes) => levels.slice(0,3).sort(isRes ? (a,b)=>a-b : (a,b)=>b-a).map(l => `
-    <div style="display:flex; justify-content:space-between; padding:5px 8px; background:${isRes ? 'rgba(255,51,85,0.08)' : 'rgba(0,255,136,0.08)'}; border-left:2px solid ${isRes ? 'var(--sell2)' : 'var(--buy2)'}; font-family:'Share Tech Mono'; font-size:11px;">
-      <span style="color:${isRes ? 'var(--sell)' : 'var(--buy)'}">${fmtLevel(l)}</span>
-      <span style="color:var(--text2)">${isRes ? '+' : ''}${distPct(l)}%</span>
-    </div>
-  `).join('');
-
-  resContainer.innerHTML = resistance.length ? levelHtml(resistance, true) : '<div style="color:var(--text2);font-size:10px;font-family:Share Tech Mono">최근 저항선 없음</div>';
-  supContainer.innerHTML = support.length ? levelHtml(support, false) : '<div style="color:var(--text2);font-size:10px;font-family:Share Tech Mono">최근 지지선 없음</div>';
-}
-
-// ═══════════════════════════════════════════════════
-// AI ANALYSIS (Claude API)
-// ═══════════════════════════════════════════════════
-async function runAIAnalysis() {
-  if(!stockData) { alert('먼저 종목 데이터를 불러오세요.'); return; }
-
-  const progress = document.getElementById('analysisProgress');
-  const progressText = document.getElementById('progressText');
-  const aiText = document.getElementById('aiAnalysisText');
-
-  progress.classList.add('show');
-  progressText.textContent = 'AI 기술적 분석 준비 중...';
-  aiText.innerHTML = '<div class="thinking"><div class="dot-pulse"><span></span><span></span><span></span></div><span style="margin-left:8px;">Claude AI가 분석 중입니다...</span></div>';
-
-  const candles = stockData.candles;
-  const closes = candles.map(c => c.close);
-  const currentClose = closes[closes.length - 1];
-  const rsi = computeRSI(closes);
-  const macd = computeMACDVal(closes);
-  const bb = computeBB(closes, 20);
-  const ma20 = computeEMA(closes, 20);
-  const ma50 = computeEMA(closes, 50);
-  const stoch = computeStoch(candles);
-  const atr = computeATR(candles);
-
-  const bbUpper = bb.upper[bb.upper.length - 1];
-  const bbLower = bb.lower[bb.lower.length - 1];
-
-  const change5d = ((currentClose - closes[closes.length-6]) / closes[closes.length-6] * 100).toFixed(2);
-  const change20d = ((currentClose - closes[closes.length-21]) / closes[closes.length-21] * 100).toFixed(2);
-
-  const prompt = `당신은 전문 주식 기술적 분석가입니다. 다음 데이터를 분석하고 한국어로 매매 전략을 제시하세요.
-
-종목: ${currentSymbol}
-현재가: ${currentClose.toFixed(2)}
-5일 수익률: ${change5d}%
-20일 수익률: ${change20d}%
-
-기술적 지표:
-- RSI(14): ${rsi.toFixed(1)} (30이하=과매도, 70이상=과매수)
-- MACD: ${macd.macd.toFixed(3)} / 시그널: ${macd.signal.toFixed(3)} / 히스토그램: ${macd.hist.toFixed(3)}
-- 볼린저밴드: 상단${bbUpper?.toFixed(2)} / 하단${bbLower?.toFixed(2)} / 현재가 위치: ${((currentClose - bbLower) / (bbUpper - bbLower) * 100).toFixed(0)}%
-- MA20: ${ma20.toFixed(2)} / MA50: ${ma50.toFixed(2)}
-- 스토캐스틱: ${stoch.toFixed(1)}
-- ATR(변동성): ${(atr/currentClose*100).toFixed(2)}%
-
-다음 형식으로 분석해주세요:
-1. **현재 시장 상황**: 전반적인 기술적 상태 (2-3문장)
-2. **매수 타이밍**: 구체적인 진입 조건과 목표가 (2-3문장)
-3. **매도 타이밍**: 차익실현 및 손절 조건 (2-3문장)
-4. **리스크 관리**: 포지션 크기 및 주의사항 (1-2문장)
-5. **최종 신호**: BUY/SELL/HOLD 중 하나와 신뢰도(%) - 한 줄로
-
-간결하고 실용적으로 작성하세요.`;
-
-  try {
-    progressText.textContent = 'Claude AI 분석 중...';
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    const data = await response.json();
-    const text = data.content[0].text;
-
-    // Format the analysis
-    const formatted = text
-      .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--accent)">$1</strong>')
-      .replace(/BUY/g, '<span style="color:var(--buy);font-weight:700">BUY</span>')
-      .replace(/SELL/g, '<span style="color:var(--sell);font-weight:700">SELL</span>')
-      .replace(/HOLD/g, '<span style="color:var(--hold);font-weight:700">HOLD</span>')
-      .replace(/\n/g, '<br>');
-
-    aiText.innerHTML = formatted;
-    progress.classList.remove('show');
-
-    // Extract signal from AI response
-    let aiSignal = 'HOLD';
-    if(text.includes('최종 신호') || text.includes('BUY')) {
-      if(text.match(/최종.*?BUY/i) || text.match(/신호.*?BUY/i)) aiSignal = 'BUY';
-      else if(text.match(/최종.*?SELL/i) || text.match(/신호.*?SELL/i)) aiSignal = 'SELL';
-    }
-
-    document.getElementById('statusMsg').textContent = `✓ AI 분석 완료 | ${currentSymbol} | ${new Date().toLocaleTimeString('ko-KR')}`;
-
-  } catch(e) {
+    stockData = data;
+    document.getElementById('chartLoad').classList.remove('on');
+    updateUI(data);
+    setTag('Stooq ✓','ok');
+    const fp=v=>isKR?Math.round(v).toLocaleString('ko-KR')+'원':'$'+v.toFixed(2);
+    document.getElementById('statusMsg').textContent=
+      `✓ [Stooq] ${sym} | 현재가: ${fp(cur)} | ${candles.length}일치 | ${new Date().toLocaleTimeString('ko-KR')}`;
+
+  }catch(e){
+    document.getElementById('chartLoad').classList.remove('on');
+    setTag('오류','err');
+    document.getElementById('statusMsg').textContent=`⚠ ${e.message}`;
     console.error(e);
-    aiText.innerHTML = `<span style="color:var(--text2)">API 분석 실패. 로컬 지표 기반 분석 결과를 참고하세요.</span>`;
-    progress.classList.remove('show');
   }
 }
 
-// ═══════════════════════════════════════════════════
-// AUTO REFRESH
-// ═══════════════════════════════════════════════════
-function toggleAutoRefresh() {
-  const btn = document.getElementById('autoRefreshBtn');
-  const interval = parseInt(document.getElementById('refreshInterval').value);
+// ══════════════════════════════════════════════
+// UI
+// ══════════════════════════════════════════════
+function updateUI(d){
+  const isKR=d.currency==='KRW';
+  const fp=v=>isKR?Math.round(v).toLocaleString('ko-KR')+'원':'$'+v.toFixed(2);
+  const fv=v=>v?(v/1e6).toFixed(1)+'M':'--';
+  const isUp=d.chgPct>=0;
 
-  if(autoRefreshActive || interval === 0) {
-    clearInterval(autoRefreshTimer);
-    clearInterval(nextRefreshCountdown);
-    autoRefreshActive = false;
-    btn.textContent = '▶ 자동분석 시작';
-    btn.style.background = '';
-    document.getElementById('nextRefreshTime').textContent = '--';
-    return;
-  }
+  document.getElementById('symLbl').textContent=d.sym;
+  document.getElementById('curPrice').textContent=fp(d.cur);
+  document.getElementById('curLvl').textContent=fp(d.cur);
+  const pe=document.getElementById('chgBadge');
+  pe.textContent=(isUp?'+':'')+d.chgPct.toFixed(2)+'%';
+  pe.className='chg '+(isUp?'up':'dn');
 
-  autoRefreshActive = true;
-  btn.textContent = '■ 자동분석 중지';
-  btn.style.background = 'linear-gradient(135deg, #3a1020, #5a1530)';
+  document.getElementById('st-cur').textContent=fp(d.cur);
+  const ce=document.getElementById('st-chg');
+  ce.textContent=(isUp?'+':'')+d.chg.toFixed(2)+' ('+(isUp?'+':'')+d.chgPct.toFixed(2)+'%)';
+  ce.className='stat-val '+(isUp?'bull':'bear');
+  document.getElementById('st-h52').textContent=fp(d.h52);
+  document.getElementById('st-l52').textContent=fp(d.l52);
+  document.getElementById('st-open').textContent=fp(d.open);
+  document.getElementById('st-pc').textContent=fp(d.pc);
+  document.getElementById('st-dh').textContent=fp(d.dHigh);
+  document.getElementById('st-dl').textContent=fp(d.dLow);
+  document.getElementById('st-vol').textContent=fv(d.vol);
 
-  let countdown = interval;
-  const updateCountdown = () => {
-    document.getElementById('nextRefreshTime').textContent = `다음 갱신: ${countdown}초 후`;
-    countdown--;
-    if(countdown < 0) countdown = interval;
-  };
-
-  updateCountdown();
-  nextRefreshCountdown = setInterval(updateCountdown, 1000);
-
-  autoRefreshTimer = setInterval(async () => {
-    await loadStock();
-    await runAIAnalysis();
-  }, interval * 1000);
+  drawCandles(d.candles);
+  calcInds(d.candles,d.cur,fp);
+  calcSR(d.candles,d.cur,fp);
 }
 
-// ═══════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════
-window.addEventListener('load', () => {
-  loadStock();
-});
+// ══════════════════════════════════════════════
+// CANDLESTICK CHART
+// ══════════════════════════════════════════════
+function maArr(data,p){return data.map((_,i)=>i<p-1?null:data.slice(i-p+1,i+1).reduce((a,b)=>a+b,0)/p)}
+function emaVal(data,p){const k=2/(p+1);let e=data.slice(0,p).reduce((a,b)=>a+b,0)/p;for(let i=p;i<data.length;i++)e=data[i]*k+e*(1-k);return e}
+function bbArr(data,p=20,m=2){const u=[],l=[];data.forEach((_,i)=>{if(i<p-1){u.push(null);l.push(null);return}const s=data.slice(i-p+1,i+1),mn=s.reduce((a,b)=>a+b,0)/p,std=Math.sqrt(s.reduce((a,b)=>a+(b-mn)**2,0)/p);u.push(mn+m*std);l.push(mn-m*std)});return{upper:u,lower:l}}
 
-document.getElementById('symbolInput').addEventListener('keypress', (e) => {
-  if(e.key === 'Enter') loadStock();
-});
+function drawCandles(candles){
+  if(pChart){pChart.destroy();pChart=null}
+  if(vChart){vChart.destroy();vChart=null}
+  const closes=candles.map(c=>c.c);
+  const ma20=maArr(closes,20),ma50=maArr(closes,50),bb=bbArr(closes,20);
+  const lineDs=(arr,color,dash=[])=>({type:'line',data:candles.map((c,i)=>({x:c.x,y:arr[i]})).filter(p=>p.y!=null),borderColor:color,borderWidth:1.2,pointRadius:0,borderDash:dash,fill:false,tension:0.1,order:2});
+  const ctx=document.getElementById('priceChart').getContext('2d');
+  pChart=new Chart(ctx,{
+    data:{datasets:[
+      {type:'candlestick',label:SYM,data:candles.map(c=>({x:c.x,o:c.o,h:c.h,l:c.l,c:c.c})),
+       color:{up:'#00ff88',down:'#ff3355',unchanged:'#7a9bb5'},
+       borderColor:{up:'#00cc66',down:'#cc2244',unchanged:'#5a7a95'},order:1},
+      {...lineDs(ma20,'#ffaa00'),label:'MA20'},
+      {...lineDs(ma50,'#ff6644'),label:'MA50'},
+      {...lineDs(bb.upper,'rgba(200,224,240,0.3)',[4,4]),label:'BB상단'},
+      {...lineDs(bb.lower,'rgba(200,224,240,0.3)',[4,4]),label:'BB하단'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:500},
+      interaction:{intersect:false,mode:'index'},
+      plugins:{
+        legend:{labels:{color:'#7a9bb5',font:{size:9},boxWidth:16}},
+        tooltip:{backgroundColor:'#0d1c2e',borderColor:'#1a3a5c',borderWidth:1,titleColor:'#00d4ff',bodyColor:'#c8e0f0',
+          callbacks:{
+            title:items=>items[0]?new Date(items[0].parsed.x).toLocaleDateString('ko-KR'):'',
+            label:item=>{if(item.dataset.type==='candlestick'){const r=item.raw;return ` O:${r.o?.toFixed(2)} H:${r.h?.toFixed(2)} L:${r.l?.toFixed(2)} C:${r.c?.toFixed(2)}`}return ` ${item.dataset.label}: ${item.parsed?.y?.toFixed(2)??''}`}
+          }}},
+      scales:{
+        x:{type:'time',time:{unit:'day',displayFormats:{day:'MM/dd'}},ticks:{color:'#7a9bb5',font:{size:8},maxTicksLimit:10},grid:{color:'rgba(26,58,92,0.4)'}},
+        y:{ticks:{color:'#7a9bb5',font:{size:9}},grid:{color:'rgba(26,58,92,0.4)'},position:'right'}
+      }}
+  });
+  const vc=document.getElementById('volChart').getContext('2d');
+  vChart=new Chart(vc,{type:'bar',data:{datasets:[{data:candles.map(c=>({x:c.x,y:c.v})),backgroundColor:candles.map(c=>c.c>=c.o?'rgba(0,255,136,0.5)':'rgba(255,51,85,0.5)'),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{type:'time',time:{unit:'day'},ticks:{display:false},grid:{display:false}},y:{ticks:{color:'#7a9bb5',font:{size:8},maxTicksLimit:3},grid:{color:'rgba(26,58,92,0.3)'},position:'right'}}}});
+}
+
+// ══════════════════════════════════════════════
+// INDICATORS
+// ══════════════════════════════════════════════
+function rsiVal(closes,p=14){const ch=closes.slice(1).map((c,i)=>c-closes[i]);let ag=0,al=0;for(let i=0;i<p;i++){if(ch[i]>0)ag+=ch[i];else al-=ch[i]}ag/=p;al/=p;for(let i=p;i<ch.length;i++){ag=(ag*(p-1)+(ch[i]>0?ch[i]:0))/p;al=(al*(p-1)+(ch[i]<0?-ch[i]:0))/p}return al===0?100:100-(100/(1+ag/al))}
+function stochVal(candles,p=14){const last=candles.slice(-p),h=Math.max(...last.map(c=>c.h)),lo=Math.min(...last.map(c=>c.l));return((candles.slice(-1)[0].c-lo)/(h-lo))*100}
+function atrVal(candles,p=14){const trs=candles.slice(1).map((c,i)=>Math.max(c.h-c.l,Math.abs(c.h-candles[i].c),Math.abs(c.l-candles[i].c)));return trs.slice(-p).reduce((a,b)=>a+b,0)/p}
+function setInd(idx,val,cls,sig){const ids=['rsi','macd','bb','ma','st','atr','obv','tot'];document.querySelectorAll('#indGrid .ind-card')[idx].className=`ind-card ${cls}`;document.getElementById('v-'+ids[idx]).textContent=val;document.getElementById('v-'+ids[idx]).className=`ind-val ${cls}`;document.getElementById('s-'+ids[idx]).textContent=sig;document.getElementById('s-'+ids[idx]).className=`ind-sig ${cls}`}
+
+function calcInds(candles,cur,fp){
+  const closes=candles.map(c=>c.c);
+  const rsi=rsiVal(closes);
+  let rc='neut',rt='중립';
+  if(rsi<30){rc='bull';rt='과매도(매수)'}else if(rsi<45){rc='bull';rt='매수 우위'}else if(rsi>70){rc='bear';rt='과매수(매도)'}else if(rsi>55){rc='bear';rt='매도 우위'}
+  setInd(0,rsi.toFixed(1),rc,rt);
+  const e12=emaVal(closes,12),e26=emaVal(closes,26),macd=e12-e26;
+  setInd(1,macd.toFixed(2),macd>0?'bull':'bear',macd>0?'MACD 상향':'MACD 하향');
+  const bb=bbArr(closes,20),bbU=bb.upper[bb.upper.length-1],bbL=bb.lower[bb.lower.length-1];
+  const bbP=((cur-bbL)/(bbU-bbL)*100).toFixed(0);
+  let bbc='neut',bbt='밴드 중간';
+  if(cur<bbL*1.01){bbc='bull';bbt='하단근접(매수)'}else if(cur>bbU*0.99){bbc='bear';bbt='상단근접(매도)'}
+  setInd(2,bbP+'%',bbc,bbt);
+  const ma20=emaVal(closes,20),ma50=emaVal(closes,50);
+  const mac=ma20>ma50&&cur>ma20?'bull':ma20<ma50&&cur<ma20?'bear':'neut';
+  setInd(3,ma20.toFixed(2),mac,ma20>ma50?'골든크로스':ma20<ma50?'데드크로스':'MA 혼재');
+  const st=stochVal(candles);
+  let stc='neut',stt='중립';if(st<20){stc='bull';stt='과매도'}else if(st>80){stc='bear';stt='과매수'}
+  setInd(4,st.toFixed(1),stc,stt);
+  const atr=atrVal(candles),atrP=(atr/cur*100).toFixed(1);
+  setInd(5,atrP+'%',parseFloat(atrP)>3?'bear':parseFloat(atrP)>2?'neut':'bull',parseFloat(atrP)>3?'고변동성':parseFloat(atrP)>2?'보통':'저변동성');
+  let obv=0;candles.forEach((c,i)=>{if(i===0)return;if(c.c>candles[i-1].c)obv+=c.v;else if(c.c<candles[i-1].c)obv-=c.v});
+  setInd(6,(obv/1e6).toFixed(1)+'M',obv>0?'bull':'bear',obv>0?'매집':'분산');
+  const cls=[rc,macd>0?'bull':'bear',bbc,mac,stc,obv>0?'bull':'bear'];
+  const bull=cls.filter(x=>x==='bull').length,bear=cls.filter(x=>x==='bear').length;
+  let oc,os,ot;
+  if(bull>=4){oc='bull';os='BUY';ot=`매수신호 ${bull}/6`}else if(bear>=4){oc='bear';os='SELL';ot=`매도신호 ${bear}/6`}else{oc='neut';os='HOLD';ot=`관망(${bull}/${bear})`}
+  setInd(7,os,oc,ot);
+  const sb=document.getElementById('sigBox'),badge=document.getElementById('sigBadge');
+  sb.className=`sig-box ${os}`;badge.className=`sig-badge ${os}`;badge.textContent=os;
+  const str=os==='BUY'?bull/6*100:os==='SELL'?bear/6*100:50;
+  document.getElementById('strFill').style.cssText=`width:${str}%;background:${os==='BUY'?'var(--buy)':os==='SELL'?'var(--sell)':'var(--hold)'}`;
+  document.getElementById('strPct').textContent=Math.round(str)+'%';
+  document.getElementById('strPct').className='str-pct '+(os==='BUY'?'bull':os==='SELL'?'bear':'neut');
+  document.getElementById('sigTxt').textContent={BUY:`매수신호 ${bull}개. 기술적 지표 상승 전환.`,SELL:`매도신호 ${bear}개. 과매수, 차익실현 고려.`,HOLD:`혼재(매수${bull}/매도${bear}). 추가 확인 권장.`}[os];
+  document.getElementById('st-tgt').textContent=fp(cur*(os==='SELL'?0.97:1.05));
+  document.getElementById('st-stp').textContent=fp(cur*(os==='SELL'?1.03:0.97));
+  const t=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  sigHistory.unshift({os,cur,t,sym:SYM});if(sigHistory.length>10)sigHistory.pop();
+  document.getElementById('sigHist').innerHTML=sigHistory.map(h=>`<div class="hist-item"><span class="hbadge ${h.os}">${h.os}</span><span style="color:var(--text2);font-size:9px">${h.sym}</span><span class="htime">${h.t}</span><span class="hprice">${fp(h.cur)}</span></div>`).join('');
+}
+
+function calcSR(candles,cur,fp){
+  const res=[],sup=[];
+  for(let i=5;i<candles.length-5;i++){const c=candles[i];
+    if(c.h>cur&&c.h>candles[i-1].h&&c.h>candles[i+1].h&&c.h>candles[i-2].h&&c.h>candles[i+2].h&&res.length<3)res.push(c.h);
+    if(c.l<cur&&c.l<candles[i-1].l&&c.l<candles[i+1].l&&c.l<candles[i-2].l&&c.l<candles[i+2].l&&sup.length<3)sup.push(c.l);
+  }
+  const d=v=>((v-cur)/cur*100).toFixed(1);
+  const html=(lvls,isR)=>lvls.slice(0,3).sort(isR?(a,b)=>a-b:(a,b)=>b-a).map(l=>`<div style="display:flex;justify-content:space-between;padding:4px 7px;background:${isR?'rgba(255,51,85,0.08)':'rgba(0,255,136,0.08)'};border-left:2px solid ${isR?'var(--sell2)':'var(--buy2)'};font-family:'Share Tech Mono';font-size:10px"><span style="color:${isR?'var(--sell)':'var(--buy)'}">${fp(l)}</span><span style="color:var(--text2)">${isR?'+':''}${d(l)}%</span></div>`).join('');
+  document.getElementById('resLvl').innerHTML=res.length?html(res,true):'<div style="color:var(--text2);font-size:9px">없음</div>';
+  document.getElementById('supLvl').innerHTML=sup.length?html(sup,false):'<div style="color:var(--text2);font-size:9px">없음</div>';
+}
+
+// ══════════════════════════════════════════════
+// AI
+// ══════════════════════════════════════════════
+async function runAI(){
+  if(!stockData){alert('먼저 종목을 불러오세요!');return}
+  document.getElementById('progBar').classList.add('on');
+  document.getElementById('progTxt').textContent='Claude AI 분석 중...';
+  document.getElementById('aiBox').innerHTML='<div class="thinking"><div class="dots"><span></span><span></span><span></span></div><span style="margin-left:8px">Claude AI 분석 중...</span></div>';
+  const d=stockData,closes=d.candles.map(c=>c.c);
+  const rsi=rsiVal(closes),e12=emaVal(closes,12),e26=emaVal(closes,26),macd=e12-e26;
+  const bb=bbArr(closes,20),bbU=bb.upper[bb.upper.length-1],bbL=bb.lower[bb.lower.length-1];
+  const ma20=emaVal(closes,20),ma50=emaVal(closes,50),st=stochVal(d.candles),atr=atrVal(d.candles);
+  const c5=((d.cur-closes[closes.length-6])/closes[closes.length-6]*100).toFixed(2);
+  const c20=((d.cur-closes[closes.length-21])/closes[closes.length-21]*100).toFixed(2);
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:
+        `전문 주식 기술적 분석가로서 한국어로 분석해주세요. 오늘은 2026년 3월 17일입니다.\n종목: ${SYM} | 현재가: ${d.cur.toFixed(2)} (${d.currency}) | 전일대비: ${d.chgPct>=0?'+':''}${d.chgPct.toFixed(2)}%\n5일: ${c5}% | 20일: ${c20}%\nRSI: ${rsi.toFixed(1)} | MACD: ${macd.toFixed(3)} | BB위치: ${((d.cur-bbL)/(bbU-bbL)*100).toFixed(0)}%\nMA20: ${ma20.toFixed(2)} | MA50: ${ma50.toFixed(2)} | 스토캐스틱: ${st.toFixed(1)} | ATR: ${(atr/d.cur*100).toFixed(2)}%\n\n형식:\n1. **현재상황**\n2. **매수타이밍**\n3. **매도타이밍**\n4. **리스크**\n5. **최종신호**: BUY/SELL/HOLD (신뢰도%)`
+      }]})});
+    const data=await r.json();
+    document.getElementById('aiBox').innerHTML=data.content[0].text
+      .replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--accent)">$1</strong>')
+      .replace(/\bBUY\b/g,'<span style="color:var(--buy);font-weight:700">BUY</span>')
+      .replace(/\bSELL\b/g,'<span style="color:var(--sell);font-weight:700">SELL</span>')
+      .replace(/\bHOLD\b/g,'<span style="color:var(--hold);font-weight:700">HOLD</span>')
+      .replace(/\n/g,'<br>');
+  }catch(e){
+    document.getElementById('aiBox').innerHTML=`<span style="color:var(--text2)">AI 오류: ${e.message}</span>`;
+  }finally{document.getElementById('progBar').classList.remove('on')}
+}
+
+// ══════════════════════════════════════════════
+// AUTO
+// ══════════════════════════════════════════════
+function toggleAuto(){
+  const btn=document.getElementById('autoBtn'),sec=parseInt(document.getElementById('refInt').value);
+  if(autoActive||sec===0){clearInterval(autoTimer);clearInterval(cdTimer);autoActive=false;btn.textContent='▶ 자동분석 시작';btn.style.background='';document.getElementById('autoTxt').textContent='--';return}
+  autoActive=true;btn.textContent='■ 중지';btn.style.background='linear-gradient(135deg,#3a1020,#5a1530)';
+  let cd=sec;const upd=()=>{document.getElementById('autoTxt').textContent=`다음갱신: ${cd}초후`;if(--cd<0)cd=sec};
+  upd();cdTimer=setInterval(upd,1000);
+  autoTimer=setInterval(async()=>{await loadStock();await runAI()},sec*1000);
+}
+
+document.getElementById('symInput').addEventListener('keypress',e=>{if(e.key==='Enter')loadStock()});
+window.addEventListener('load',loadStock);
 </script>
 </body>
 </html>
